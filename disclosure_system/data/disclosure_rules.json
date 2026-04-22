@@ -1,0 +1,687 @@
+{
+  "disclosure_rules": [
+    {
+      "rule_id": "contract_001",
+      "category": "계약",
+      "title": "중요 계약 체결",
+      "description": "단일 거래규모가 최근 매출액의 10% 이상인 중요한 거래 계약을 체결하는 경우",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "sales_ratio",
+        "value": 10,
+        "unit": "%",
+        "description": "연간 매출액의 10% 이상"
+      },
+      "reference": "유가증권시장 공시규정 §7조1항1호",
+      "disclosure_period": "즉시",
+      "keywords": ["계약", "거래", "수주", "주문", "공급계약", "납품계약"]
+    },
+    {
+      "rule_id": "contract_002",
+      "category": "계약",
+      "title": "중요 계약 해제·해지",
+      "description": "공시된 중요 계약이 해제 또는 해지되는 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항1호",
+      "disclosure_period": "즉시",
+      "keywords": ["계약해제", "계약해지", "계약취소", "해지"]
+    },
+    {
+      "rule_id": "investment_001",
+      "category": "투자",
+      "title": "신규 시설투자 결정 (KOSPI)",
+      "description": "단일 신규 시설투자 금액이 자기자본의 10% 이상인 경우 (유가증권시장 기준)",
+      "rule_type": "quantitative",
+      "market": ["kospi"],
+      "threshold": {
+        "metric": "equity_ratio",
+        "value": 10,
+        "unit": "%",
+        "description": "자기자본의 10% 이상"
+      },
+      "reference": "유가증권시장 공시규정 §7조1항2호",
+      "disclosure_period": "즉시",
+      "keywords": ["시설투자", "설비투자", "공장신설", "생산시설", "투자결정"]
+    },
+    {
+      "rule_id": "investment_002",
+      "category": "투자",
+      "title": "신규 시설투자 결정 (KOSDAQ)",
+      "description": "단일 신규 시설투자 금액이 자기자본의 5% 이상인 경우 (코스닥시장 기준)",
+      "rule_type": "quantitative",
+      "market": ["kosdaq"],
+      "threshold": {
+        "metric": "equity_ratio",
+        "value": 5,
+        "unit": "%",
+        "description": "자기자본의 5% 이상"
+      },
+      "reference": "코스닥시장 공시규정 §6조1항2호",
+      "disclosure_period": "즉시",
+      "keywords": ["시설투자", "설비투자", "공장신설", "생산시설", "투자결정"]
+    },
+    {
+      "rule_id": "investment_003",
+      "category": "투자",
+      "title": "타법인 주식 취득",
+      "description": "타법인 주식 취득금액이 자기자본의 5% 이상인 경우",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "equity_ratio",
+        "value": 5,
+        "unit": "%",
+        "description": "자기자본의 5% 이상"
+      },
+      "reference": "유가증권시장 공시규정 §7조1항3호",
+      "disclosure_period": "즉시",
+      "keywords": ["주식취득", "지분취득", "투자", "인수", "취득", "매수"]
+    },
+    {
+      "rule_id": "investment_004",
+      "category": "투자",
+      "title": "타법인 출자",
+      "description": "타법인에 대한 출자금액이 자산총액의 5% 이상인 경우",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "asset_ratio",
+        "value": 5,
+        "unit": "%",
+        "description": "자산총액의 5% 이상"
+      },
+      "reference": "유가증권시장 공시규정 §7조1항4호",
+      "disclosure_period": "즉시",
+      "keywords": ["출자", "펀드", "조합출자", "투자조합"]
+    },
+    {
+      "rule_id": "investment_005",
+      "category": "투자",
+      "title": "단기대여금·가지급금 제공",
+      "description": "단기대여금 또는 가지급금 제공액이 자기자본의 5% 이상인 경우",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "equity_ratio",
+        "value": 5,
+        "unit": "%",
+        "description": "자기자본의 5% 이상"
+      },
+      "reference": "유가증권시장 공시규정 §7조1항5호",
+      "disclosure_period": "즉시",
+      "keywords": ["대여금", "가지급금", "자금대여", "단기대여"]
+    },
+    {
+      "rule_id": "disposal_001",
+      "category": "자산처분",
+      "title": "중요 자산 매각·처분",
+      "description": "자산 처분금액이 자산총액의 10% 이상인 경우",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "asset_ratio",
+        "value": 10,
+        "unit": "%",
+        "description": "자산총액의 10% 이상"
+      },
+      "reference": "유가증권시장 공시규정 §7조1항6호",
+      "disclosure_period": "즉시",
+      "keywords": ["매각", "자산매각", "처분", "부동산매각", "유형자산처분"]
+    },
+    {
+      "rule_id": "disposal_002",
+      "category": "자산처분",
+      "title": "타법인 주식 처분",
+      "description": "타법인 주식 처분금액이 자기자본의 5% 이상인 경우",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "equity_ratio",
+        "value": 5,
+        "unit": "%",
+        "description": "자기자본의 5% 이상"
+      },
+      "reference": "유가증권시장 공시규정 §7조1항3호",
+      "disclosure_period": "즉시",
+      "keywords": ["주식처분", "지분매각", "지분처분", "주식매도"]
+    },
+    {
+      "rule_id": "capital_001",
+      "category": "증자",
+      "title": "유상증자 결정",
+      "description": "회사가 유상으로 신주를 발행하여 자본금을 증가시키는 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항7호",
+      "disclosure_period": "즉시",
+      "keywords": ["유상증자", "신주발행", "주주배정", "일반공모", "제3자배정"]
+    },
+    {
+      "rule_id": "capital_002",
+      "category": "증자",
+      "title": "무상증자 결정",
+      "description": "회사가 무상으로 신주를 발행하여 자본금을 증가시키는 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항7호",
+      "disclosure_period": "즉시",
+      "keywords": ["무상증자", "무상주", "주식배당"]
+    },
+    {
+      "rule_id": "capital_003",
+      "category": "감자",
+      "title": "감자 결정",
+      "description": "회사가 유상 또는 무상으로 자본금을 감소시키는 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항8호",
+      "disclosure_period": "즉시",
+      "keywords": ["감자", "유상감자", "무상감자", "자본감소", "주식소각"]
+    },
+    {
+      "rule_id": "capital_004",
+      "category": "증자",
+      "title": "주식 분할·병합",
+      "description": "회사가 기발행 주식을 분할하거나 병합하는 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항9호",
+      "disclosure_period": "즉시",
+      "keywords": ["주식분할", "액면분할", "주식병합", "액면병합"]
+    },
+    {
+      "rule_id": "debt_001",
+      "category": "사채발행",
+      "title": "전환사채(CB) 발행",
+      "description": "전환사채 발행금액이 자기자본의 10% 이상인 경우",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "equity_ratio",
+        "value": 10,
+        "unit": "%",
+        "description": "자기자본의 10% 이상"
+      },
+      "reference": "유가증권시장 공시규정 §7조1항10호",
+      "disclosure_period": "즉시",
+      "keywords": ["전환사채", "CB", "전환권", "주식전환"]
+    },
+    {
+      "rule_id": "debt_002",
+      "category": "사채발행",
+      "title": "신주인수권부사채(BW) 발행",
+      "description": "BW 발행금액이 자기자본의 10% 이상인 경우",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "equity_ratio",
+        "value": 10,
+        "unit": "%",
+        "description": "자기자본의 10% 이상"
+      },
+      "reference": "유가증권시장 공시규정 §7조1항10호",
+      "disclosure_period": "즉시",
+      "keywords": ["신주인수권부사채", "BW", "워런트", "신주인수권"]
+    },
+    {
+      "rule_id": "debt_003",
+      "category": "사채발행",
+      "title": "교환사채(EB) 발행",
+      "description": "EB 발행금액이 자기자본의 10% 이상인 경우",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "equity_ratio",
+        "value": 10,
+        "unit": "%",
+        "description": "자기자본의 10% 이상"
+      },
+      "reference": "유가증권시장 공시규정 §7조1항10호",
+      "disclosure_period": "즉시",
+      "keywords": ["교환사채", "EB", "교환권"]
+    },
+    {
+      "rule_id": "debt_004",
+      "category": "사채발행",
+      "title": "일반 사채 발행",
+      "description": "일반사채 발행금액이 자기자본의 30% 이상인 경우",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "equity_ratio",
+        "value": 30,
+        "unit": "%",
+        "description": "자기자본의 30% 이상"
+      },
+      "reference": "유가증권시장 공시규정 §7조1항11호",
+      "disclosure_period": "즉시",
+      "keywords": ["사채", "회사채", "채권발행", "일반사채", "차입"]
+    },
+    {
+      "rule_id": "ma_001",
+      "category": "M&A",
+      "title": "합병 결정",
+      "description": "회사가 다른 법인을 흡수합병하거나 신설합병하는 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항12호",
+      "disclosure_period": "즉시",
+      "keywords": ["합병", "흡수합병", "신설합병", "M&A", "인수합병"]
+    },
+    {
+      "rule_id": "ma_002",
+      "category": "M&A",
+      "title": "회사 분할 결정",
+      "description": "회사가 물적분할 또는 인적분할을 결정한 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항13호",
+      "disclosure_period": "즉시",
+      "keywords": ["분할", "물적분할", "인적분할", "회사분할", "사업분할"]
+    },
+    {
+      "rule_id": "ma_003",
+      "category": "M&A",
+      "title": "영업 양수 결정",
+      "description": "영업 양수 금액이 자산총액의 10% 이상인 경우",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "asset_ratio",
+        "value": 10,
+        "unit": "%",
+        "description": "자산총액의 10% 이상"
+      },
+      "reference": "유가증권시장 공시규정 §7조1항14호",
+      "disclosure_period": "즉시",
+      "keywords": ["영업양수", "사업양수", "영업인수", "사업인수"]
+    },
+    {
+      "rule_id": "ma_004",
+      "category": "M&A",
+      "title": "영업 양도 결정",
+      "description": "영업 양도 금액이 자산총액의 10% 이상인 경우",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "asset_ratio",
+        "value": 10,
+        "unit": "%",
+        "description": "자산총액의 10% 이상"
+      },
+      "reference": "유가증권시장 공시규정 §7조1항14호",
+      "disclosure_period": "즉시",
+      "keywords": ["영업양도", "사업양도", "사업매각", "영업매각"]
+    },
+    {
+      "rule_id": "ma_005",
+      "category": "M&A",
+      "title": "주식 교환·이전",
+      "description": "완전모자회사 관계 형성을 위한 주식교환 또는 주식이전을 결정한 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항15호",
+      "disclosure_period": "즉시",
+      "keywords": ["주식교환", "주식이전", "완전자회사", "완전모회사"]
+    },
+    {
+      "rule_id": "treasury_001",
+      "category": "자기주식",
+      "title": "자기주식 취득 결정",
+      "description": "자기주식 취득 예정금액이 자기자본의 5% 이상인 경우",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "equity_ratio",
+        "value": 5,
+        "unit": "%",
+        "description": "자기자본의 5% 이상"
+      },
+      "reference": "유가증권시장 공시규정 §7조1항16호",
+      "disclosure_period": "즉시",
+      "keywords": ["자기주식취득", "자사주취득", "자기주식매입", "자사주매입"]
+    },
+    {
+      "rule_id": "treasury_002",
+      "category": "자기주식",
+      "title": "자기주식 처분 결정",
+      "description": "보유 자기주식을 처분·매각하는 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항16호",
+      "disclosure_period": "즉시",
+      "keywords": ["자기주식처분", "자사주처분", "자기주식매도"]
+    },
+    {
+      "rule_id": "treasury_003",
+      "category": "자기주식",
+      "title": "자기주식 소각 결정",
+      "description": "보유 자기주식을 소각하는 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항17호",
+      "disclosure_period": "즉시",
+      "keywords": ["자기주식소각", "자사주소각", "주식소각"]
+    },
+    {
+      "rule_id": "dividend_001",
+      "category": "배당",
+      "title": "현금배당 결정",
+      "description": "이사회에서 현금배당을 결정한 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항18호",
+      "disclosure_period": "즉시",
+      "keywords": ["현금배당", "배당결정", "배당금", "배당기준일"]
+    },
+    {
+      "rule_id": "dividend_002",
+      "category": "배당",
+      "title": "주식배당 결정",
+      "description": "이사회에서 주식배당을 결정한 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항18호",
+      "disclosure_period": "즉시",
+      "keywords": ["주식배당", "배당주식", "배당결정"]
+    },
+    {
+      "rule_id": "dividend_003",
+      "category": "배당",
+      "title": "중간배당 결정",
+      "description": "이사회에서 중간배당을 결정한 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항18호",
+      "disclosure_period": "즉시",
+      "keywords": ["중간배당", "반기배당", "분기배당"]
+    },
+    {
+      "rule_id": "officer_001",
+      "category": "인사",
+      "title": "대표이사 변경",
+      "description": "대표이사(CEO)가 변경되는 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항19호",
+      "disclosure_period": "즉시",
+      "keywords": ["대표이사", "대표이사변경", "CEO교체", "임원변경"]
+    },
+    {
+      "rule_id": "officer_002",
+      "category": "인사",
+      "title": "최대주주 변경",
+      "description": "최대주주가 변경되거나 변경이 예상되는 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항20호",
+      "disclosure_period": "즉시",
+      "keywords": ["최대주주변경", "대주주변경", "지배주주변경", "경영권변경"]
+    },
+    {
+      "rule_id": "officer_003",
+      "category": "인사",
+      "title": "임원 횡령·배임",
+      "description": "임직원의 횡령·배임 사실이 확인된 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항21호",
+      "disclosure_period": "즉시",
+      "keywords": ["횡령", "배임", "임원횡령", "임원배임", "형사고발"]
+    },
+    {
+      "rule_id": "lawsuit_001",
+      "category": "소송",
+      "title": "중요 소송 제기·피소",
+      "description": "소송가액이 자산총액의 5% 이상인 소송을 제기하거나 피소된 경우",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "asset_ratio",
+        "value": 5,
+        "unit": "%",
+        "description": "자산총액의 5% 이상"
+      },
+      "reference": "유가증권시장 공시규정 §7조1항22호",
+      "disclosure_period": "즉시",
+      "keywords": ["소송", "피소", "법적분쟁", "손해배상", "소제기"]
+    },
+    {
+      "rule_id": "lawsuit_002",
+      "category": "소송",
+      "title": "공정거래위원회 제재",
+      "description": "공정거래위원회로부터 과징금 등 제재를 받은 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항23호",
+      "disclosure_period": "즉시",
+      "keywords": ["공정거래", "공정위", "과징금", "시정명령", "담합"]
+    },
+    {
+      "rule_id": "lawsuit_003",
+      "category": "소송",
+      "title": "금융감독원·금융위원회 제재",
+      "description": "금융감독원 또는 금융위원회로부터 제재를 받은 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항23호",
+      "disclosure_period": "즉시",
+      "keywords": ["금감원", "금융위", "금융당국제재", "시정조치", "영업정지명령"]
+    },
+    {
+      "rule_id": "going_concern_001",
+      "category": "기업연속성",
+      "title": "계속기업 관련 불확실성",
+      "description": "감사인이 계속기업 전제에 중대한 의구심을 표명하거나 누적 결손금이 자본금의 50% 이상인 경우",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "accumulated_loss_ratio",
+        "value": 50,
+        "unit": "%",
+        "description": "누적 결손금이 자본금의 50% 이상"
+      },
+      "reference": "K-IFRS 1113호",
+      "disclosure_period": "정기보고",
+      "keywords": ["계속기업", "누적결손금", "기업연속성", "유동성위기"]
+    },
+    {
+      "rule_id": "going_concern_002",
+      "category": "기업연속성",
+      "title": "부분 자본잠식",
+      "description": "자본금 대비 자본잠식률이 50% 이상인 경우 (관리종목 지정 사유)",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §47조",
+      "disclosure_period": "즉시",
+      "keywords": ["자본잠식", "부분자본잠식", "결손", "자기자본잠식"]
+    },
+    {
+      "rule_id": "going_concern_003",
+      "category": "기업연속성",
+      "title": "완전 자본잠식",
+      "description": "자기자본이 마이너스(완전잠식)가 된 경우 — 상장폐지 사유",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §48조",
+      "disclosure_period": "즉시",
+      "keywords": ["완전자본잠식", "자기자본마이너스", "상장폐지위험"]
+    },
+    {
+      "rule_id": "going_concern_004",
+      "category": "기업연속성",
+      "title": "부도 발생",
+      "description": "어음·수표 부도 또는 은행 거래정지가 발생한 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항24호",
+      "disclosure_period": "즉시",
+      "keywords": ["부도", "어음부도", "은행거래정지", "지급불능"]
+    },
+    {
+      "rule_id": "going_concern_005",
+      "category": "기업연속성",
+      "title": "기업회생절차 신청",
+      "description": "법원에 기업회생절차(법정관리) 개시를 신청한 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항25호",
+      "disclosure_period": "즉시",
+      "keywords": ["회생절차", "법정관리", "회생신청", "파산"]
+    },
+    {
+      "rule_id": "business_001",
+      "category": "영업",
+      "title": "영업정지 처분",
+      "description": "행정기관으로부터 영업정지 처분을 받은 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항26호",
+      "disclosure_period": "즉시",
+      "keywords": ["영업정지", "행정처분", "업무정지"]
+    },
+    {
+      "rule_id": "business_002",
+      "category": "영업",
+      "title": "주요 허가·인가 취소",
+      "description": "주요 사업에 관한 허가·인가·등록이 취소된 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항26호",
+      "disclosure_period": "즉시",
+      "keywords": ["허가취소", "인가취소", "등록취소", "면허취소"]
+    },
+    {
+      "rule_id": "business_003",
+      "category": "영업",
+      "title": "중요 자산 압류·가압류",
+      "description": "사업 영위에 중요한 자산이 압류 또는 가압류된 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "유가증권시장 공시규정 §7조1항27호",
+      "disclosure_period": "즉시",
+      "keywords": ["압류", "가압류", "자산압류", "강제집행"]
+    },
+    {
+      "rule_id": "related_party_001",
+      "category": "관련거래",
+      "title": "관계회사와의 중요 거래",
+      "description": "관계회사와의 거래금액이 연간 매출액의 5% 이상인 경우",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "sales_ratio",
+        "value": 5,
+        "unit": "%",
+        "description": "연간 매출액의 5% 이상"
+      },
+      "reference": "유가증권시장 공시규정 §7조1항28호",
+      "disclosure_period": "정기보고",
+      "keywords": ["관계회사", "특수관계인", "관련거래", "내부거래"]
+    },
+    {
+      "rule_id": "related_party_002",
+      "category": "관련거래",
+      "title": "대규모 내부거래",
+      "description": "공정거래법상 대규모기업집단 내 내부거래 이사회 의결 및 공시 (자산총액 5% 또는 200억 원 이상)",
+      "rule_type": "quantitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": {
+        "metric": "asset_ratio",
+        "value": 5,
+        "unit": "%",
+        "description": "자산총액의 5% 이상 또는 200억 원 이상"
+      },
+      "reference": "공정거래법 §26조",
+      "disclosure_period": "즉시",
+      "keywords": ["대규모내부거래", "대기업집단", "그룹내거래", "계열사거래"]
+    },
+    {
+      "rule_id": "audit_001",
+      "category": "감사",
+      "title": "감사의견 비적정",
+      "description": "외부감사인으로부터 한정·부적정·의견거절 감사의견을 받은 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "증권의 발행 및 공시 등에 관한 규정 §5-4조",
+      "disclosure_period": "즉시",
+      "keywords": ["비적정의견", "한정의견", "부적정의견", "의견거절", "감사의견"]
+    },
+    {
+      "rule_id": "audit_002",
+      "category": "감사",
+      "title": "내부회계관리제도 비적정",
+      "description": "내부회계관리제도에 대한 감사인 검토·감사 결과 비적정 의견이 표명된 경우",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "외부감사법 §8조",
+      "disclosure_period": "즉시",
+      "keywords": ["내부회계관리", "내부통제", "회계관리비적정"]
+    },
+    {
+      "rule_id": "periodic_001",
+      "category": "정기공시",
+      "title": "사업보고서 제출",
+      "description": "회계연도 종료 후 90일 이내 사업보고서를 금융위원회에 제출",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "자본시장법 §159조",
+      "disclosure_period": "결산 후 90일 이내",
+      "keywords": ["사업보고서", "연간보고서", "결산", "연차보고"]
+    },
+    {
+      "rule_id": "periodic_002",
+      "category": "정기공시",
+      "title": "반기보고서 제출",
+      "description": "반기(6개월) 종료 후 45일 이내 반기보고서를 제출",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "자본시장법 §160조",
+      "disclosure_period": "반기 종료 후 45일 이내",
+      "keywords": ["반기보고서", "중간보고서", "반기결산"]
+    },
+    {
+      "rule_id": "periodic_003",
+      "category": "정기공시",
+      "title": "분기보고서 제출",
+      "description": "분기(3개월, 9개월) 종료 후 45일 이내 분기보고서를 제출",
+      "rule_type": "qualitative",
+      "market": ["kospi", "kosdaq"],
+      "threshold": null,
+      "reference": "자본시장법 §160조",
+      "disclosure_period": "분기 종료 후 45일 이내",
+      "keywords": ["분기보고서", "1분기", "3분기", "분기결산"]
+    }
+  ]
+}

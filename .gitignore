@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.DS_Store
+data/temp_upload.pdf
+data/query_history.json
+disclosure_system/data/*.pdf
+disclosure_system/data/*.db
