@@ -662,83 +662,95 @@ def show_single_calculation(db, engine):
 
 def show_batch_calculation(db, engine):
     """일괄 계산"""
-    st.markdown("### 📁 여러 거래 일괄 계산")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("**재무 지표** (단위: 원)")
-        sales = st.number_input("매출액 (일괄)", value=10000000000, step=100000000)
-        total_assets = st.number_input("자산총액 (일괄)", value=50000000000, step=100000000)
-        equity = st.number_input("자기자본 (일괄)", value=20000000000, step=100000000)
-    
-    with col2:
-        st.markdown("**거래 목록**")
-        num_transactions = st.number_input("거래 개수", min_value=1, max_value=10, value=3)
-    
-    # 거래 데이터 입력
+    UNIT = 100_000_000
+
+    default_vals = st.session_state.get('extracted_metrics') or NIARTHLAB_2025
+    def to_uk(key, fallback=0):
+        val = default_vals.get(key)
+        if val is None:
+            return fallback
+        return int(val) // 100_000_000
+
+    left, right = st.columns([1, 1], gap="large")
+
+    with left:
+        st.markdown("#### 재무 기준 지표")
+        st.caption("니어스랩 2025 감사보고서 기준 — 연도 변경 시에만 수정")
+        sales_uk            = st.number_input("매출액 (억원)",  min_value=0,      value=to_uk('sales'),               step=1, format="%d", key="b_sales")
+        total_assets_uk     = st.number_input("자산총액 (억원)", min_value=0,      value=to_uk('total_assets'),         step=1, format="%d", key="b_assets")
+        equity_uk           = st.number_input("자기자본 (억원)", min_value=-99999, value=to_uk('equity'),               step=1, format="%d", key="b_equity")
+        current_assets_uk   = st.number_input("유동자산 (억원)", min_value=0,      value=to_uk('current_assets'),       step=1, format="%d", key="b_ca")
+        current_liabilities_uk = st.number_input("유동부채 (억원)", min_value=0,   value=to_uk('current_liabilities'),  step=1, format="%d", key="b_cl")
+        accumulated_loss_uk = st.number_input("누적결손금 (억원)", min_value=0,    value=to_uk('accumulated_loss'),     step=1, format="%d", key="b_loss")
+
+    with right:
+        st.markdown("#### 거래 목록 입력")
+        st.caption("판정할 거래를 순서대로 입력하세요")
+        market = st.selectbox("적용 시장", ["KOSPI", "KOSDAQ"], key="b_market")
+        num_transactions = st.number_input("거래 개수", min_value=1, max_value=10, value=3, key="b_num")
+
+        transactions = []
+        all_categories = db.get_all_categories()
+        for i in range(int(num_transactions)):
+            st.markdown(f"**거래 {i+1}**")
+            c1, c2 = st.columns([1, 1])
+            with c1:
+                cat = st.selectbox("거래 유형", all_categories, key=f"b_cat_{i}")
+            with c2:
+                amt_uk = st.number_input("거래액 (억원)", min_value=0, value=0, step=1, format="%d", key=f"b_amt_{i}")
+            transactions.append({'category': cat, 'amount_uk': amt_uk})
+
     st.markdown("---")
-    st.markdown("### 거래 정보 입력")
-    
-    transactions = []
-    cols = st.columns(3)
-    
-    for i in range(num_transactions):
-        with cols[i % 3]:
-            st.markdown(f"#### 거래 {i+1}")
-            amount = st.number_input(
-                "거래액", 
-                value=(i+1)*1000000000,
-                step=100000000,
-                key=f"tx_amount_{i}"
-            )
-            category = st.selectbox(
-                "카테고리",
-                db.get_all_categories(),
-                key=f"tx_cat_{i}"
-            )
-            transactions.append({
-                'amount': amount,
-                'category': category
-            })
-    
-    market = st.selectbox("시장 (일괄)", ["KOSPI", "KOSDAQ"])
-    
-    st.markdown("---")
-    
-    # 일괄 계산 실행
-    if st.button("📊 일괄 계산 실행", key="batch_calc"):
+
+    if st.button("일괄 계산 실행", key="batch_calc", type="primary"):
+        sales               = sales_uk               * UNIT
+        total_assets        = total_assets_uk         * UNIT
+        equity              = equity_uk               * UNIT
+        current_assets      = current_assets_uk       * UNIT
+        current_liabilities = current_liabilities_uk  * UNIT
+        accumulated_loss    = accumulated_loss_uk     * UNIT
+
         metrics = FinancialMetrics(
             sales=Decimal(str(sales)),
             total_assets=Decimal(str(total_assets)),
-            equity=Decimal(str(equity))
+            equity=Decimal(str(equity)),
+            current_assets=Decimal(str(current_assets)),
+            current_liabilities=Decimal(str(current_liabilities)),
+            accumulated_loss=Decimal(str(accumulated_loss))
         )
-        
-        st.markdown("### 📊 일괄 계산 결과")
-        
-        # 각 거래별 계산
+
+        st.markdown("### 일괄 계산 결과")
+
         for idx, tx in enumerate(transactions, 1):
-            st.markdown(f"#### 거래 {idx}: {tx['category']}")
-            
-            results = engine.calculate(
-                metrics,
-                Decimal(str(tx['amount'])),
-                market=market.lower()
-            )
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.write(f"**거래액**: {format_currency(tx['amount'])}")
-            with col2:
-                if results:
-                    result = results[0]
-                    st.write(f"**기준액**: {format_currency(result.threshold_amount)}")
-            with col3:
-                if results:
-                    result = results[0]
-                    st.write(f"**판정**: {result.result.value}")
-            
-            st.markdown("---")
+            amt = tx['amount_uk'] * UNIT
+            if amt == 0:
+                continue
+
+            all_results = engine.calculate(metrics, Decimal(str(amt)), market=market.lower())
+            cat_results = [r for r in all_results if r.rule.get('category') == tx['category']]
+            results = cat_results if cat_results else all_results
+
+            required = [r for r in results if r.result == DisclosureResult.DISCLOSURE_REQUIRED]
+            review   = [r for r in results if r.result == DisclosureResult.REVIEW_REQUIRED]
+
+            if required:
+                tag, color = "🔴 공시 대상", "result-disclosure"
+            elif review:
+                tag, color = "🟡 검토 필요", "result-review"
+            else:
+                tag, color = "🟢 공시 미대상", "result-no-disclosure"
+
+            with st.container(border=True):
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric(f"거래 {idx} ({tx['category']})", f"{tx['amount_uk']:,}억원")
+                c2.metric("판정", tag)
+                c3.metric("공시 대상", len(required))
+                c4.metric("검토 필요", len(review))
+
+                if required or review:
+                    with st.expander("상세 보기"):
+                        for r in (required + review):
+                            st.write(f"**{r.rule['title']}** — 비율 {float(r.ratio):.1%} / 근거: {r.reason}")
 
 
 def show_guide():
