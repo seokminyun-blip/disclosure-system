@@ -12,3 +12,4 @@ python-dotenv>=0.20.0      # 환경변수 관리
 matplotlib>=3.5.0          # 차트 시각화
 plotly>=5.10.0             # 인터랙티브 시각화
 requests>=2.28.0           # 국가법령정보 API 호출
+reportlab>=3.6.0           # PDF 보고서 생성
