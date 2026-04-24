@@ -48,13 +48,14 @@ class ReportGenerator:
         # 계산 결과 DataFrame 생성
         results_data = []
         for result in calculation_results:
+            threshold = result.rule.get('threshold')
             results_data.append({
-                '규칙ID': result.rule['rule_id'],
-                '규칙명': result.rule['title'],
-                '카테고리': result.rule['category'],
-                '규칙유형': result.rule['rule_type'],
+                '규칙ID': result.rule.get('rule_id', ''),
+                '규칙명': result.rule.get('title', ''),
+                '카테고리': result.rule.get('category', ''),
+                '규칙유형': result.rule.get('rule_type', ''),
                 '기준지표': result.metric_type,
-                '기준값': f"{result.rule['threshold']['value']}%",
+                '기준값': f"{threshold['value']}%" if threshold else '즉시보고',
                 '기준금액': format(int(result.threshold_amount), ','),
                 '거래액': format(int(result.transaction_amount), ','),
                 '거래액비율': f"{float(result.ratio):.1%}",
