@@ -283,7 +283,7 @@ def main():
             <div class="logo-text">공시자가진단</div>
             <div class="subtitle">신속하고 정확한 공시 의무 판정 시스템</div>
         </div>
-        <div class="badge">Phase 2 · BETA</div>
+        <div class="badge">Phase 3 · RELEASE</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -295,7 +295,9 @@ def main():
             "",
             options=[
                 "공시규칙 검색",
+                "감사보고서 분석 (PDF)",
                 "공시 판정 계산",
+                "정관 공시 체크",
                 "조회 이력",
                 "AI 공시 어드바이저",
                 "사용 가이드",
@@ -314,8 +316,12 @@ def main():
     # 페이지 라우팅
     if page == "공시규칙 검색":
         show_rule_search()
+    elif page == "감사보고서 분석 (PDF)":
+        show_pdf_parsing()
     elif page == "공시 판정 계산":
         show_calculation()
+    elif page == "정관 공시 체크":
+        show_articles_check()
     elif page == "조회 이력":
         show_query_history()
     elif page == "AI 공시 어드바이저":
@@ -753,6 +759,250 @@ def show_batch_calculation(db, engine):
                             st.write(f"**{r.rule['title']}** — 비율 {float(r.ratio):.1%} / 근거: {r.reason}")
 
 
+def show_articles_check():
+    """정관 공시 체크 페이지 — 니어스랩 정관 조항별 공시 의무 매핑"""
+
+    # ── 니어스랩 정관 핵심 조항 데이터 ──────────────────────────────
+    ARTICLES = [
+        {
+            "article": "제2조",
+            "title": "사업 목적 (27개)",
+            "summary": "드론·항공촬영·측량·검사·물류·소프트웨어 개발 등 27개 사업목적 열거",
+            "limit": None,
+            "trigger": "사업 목적 추가·삭제·변경",
+            "disclosure": "정관변경 — 주주총회 특별결의(발행주식 2/3 이상 찬성) 후 DART 공시",
+            "form": "주요사항보고서 / 주주총회소집통지",
+            "deadline": "주총 결의일로부터 5일 이내",
+            "risk": "high",
+        },
+        {
+            "article": "제5조",
+            "title": "발행주식 총수",
+            "summary": "수권주식 5억 주 / 액면가 100원",
+            "limit": "5억 주",
+            "trigger": "수권주식 한도 초과 증자 추진",
+            "disclosure": "정관변경 + 유상증자 — 한도 증량 시 주총 특별결의 先 진행",
+            "form": "주요사항보고서 (유상증자결정)",
+            "deadline": "이사회결의일 당일",
+            "risk": "high",
+        },
+        {
+            "article": "제9조",
+            "title": "신주인수권 / 제3자 배정",
+            "summary": "기술도입·재무구조개선 등 목적으로 이사회 결의 시 제3자 배정 가능",
+            "limit": None,
+            "trigger": "제3자 배정 유상증자 결정",
+            "disclosure": "주요사항보고서 (제3자배정 유상증자결정) — 이사회결의 즉시",
+            "form": "주요사항보고서",
+            "deadline": "이사회결의일 당일",
+            "risk": "high",
+        },
+        {
+            "article": "제10조",
+            "title": "주식매수선택권 (스톡옵션)",
+            "summary": "임직원 대상 주총 특별결의로 부여 가능",
+            "limit": "발행주식 총수의 15% 이내",
+            "trigger": "스톡옵션 신규 부여 또는 변경",
+            "disclosure": "주요사항보고서 (주식매수선택권부여결정) + 주총결의 후 공시",
+            "form": "주요사항보고서 / 임시주총소집결정",
+            "deadline": "이사회·주총 결의일 당일",
+            "risk": "medium",
+        },
+        {
+            "article": "제17조",
+            "title": "전환사채 (CB)",
+            "summary": "이사회 결의로 발행 가능 — 정관상 한도 500억 원",
+            "limit": "500억 원",
+            "trigger": "CB 발행 결정",
+            "disclosure": "주요사항보고서 (전환사채권발행결정) — 이사회결의 당일",
+            "form": "주요사항보고서",
+            "deadline": "이사회결의일 당일",
+            "risk": "high",
+        },
+        {
+            "article": "제18조",
+            "title": "신주인수권부사채 (BW)",
+            "summary": "이사회 결의로 발행 가능 — 정관상 한도 500억 원",
+            "limit": "500억 원",
+            "trigger": "BW 발행 결정",
+            "disclosure": "주요사항보고서 (신주인수권부사채권발행결정) — 이사회결의 당일",
+            "form": "주요사항보고서",
+            "deadline": "이사회결의일 당일",
+            "risk": "high",
+        },
+        {
+            "article": "제55조 / 55조의2",
+            "title": "배당 / 중간배당",
+            "summary": "결산배당(정기주총 결의) + 중간배당(이사회 결의, 연 1회)",
+            "limit": None,
+            "trigger": "배당 결정 (결산 또는 중간)",
+            "disclosure": "배당결정 공시 (주당배당금, 배당총액, 배당기준일)",
+            "form": "주요사항보고서 / 결산 사업보고서",
+            "deadline": "이사회·주총 결의일로부터 1일 이내",
+            "risk": "medium",
+        },
+    ]
+
+    # 현재 CB·BW 잔액 (니어스랩 2025 기준 — 정관 한도 비교용)
+    CURRENT_CB_BW = {
+        "CB_issued": 0,    # 억원 (현재 발행 잔액 — 별도 확인 필요)
+        "BW_issued": 0,
+        "CB_limit":  500,  # 정관 한도 억원
+        "BW_limit":  500,
+    }
+
+    st.markdown("""
+    <div class="dart-card">
+        <div class="dart-card-title">정관 공시 체크</div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown('<div class="section-header">니어스랩 정관 → 공시 의무 매핑</div>', unsafe_allow_html=True)
+    st.caption("니어스랩 정관(2025년 기준) 핵심 조항별 공시 트리거·서식·기한을 정리합니다.")
+
+    tab1, tab2, tab3 = st.tabs(["정관 조항별 공시 의무", "정관 변경 시뮬레이터", "자본조달 한도 체크"])
+
+    # ── Tab 1: 조항별 매핑 ──────────────────────────────────────────
+    with tab1:
+        st.markdown("### 핵심 조항 공시 의무 요약")
+
+        risk_filter = st.selectbox("위험도 필터", ["전체", "high — 즉시 공시", "medium — 주총 후 공시"],
+                                   key="art_risk")
+        filter_val = None if risk_filter == "전체" else risk_filter.split(" ")[0]
+
+        for art in ARTICLES:
+            if filter_val and art["risk"] != filter_val:
+                continue
+
+            risk_color = "#E53935" if art["risk"] == "high" else "#FFB300"
+            risk_label = "🔴 즉시공시" if art["risk"] == "high" else "🟡 주총후공시"
+
+            with st.expander(f"{art['article']} {art['title']}  {risk_label}"):
+                c1, c2 = st.columns([1, 1])
+                with c1:
+                    st.markdown(f"**조항 내용**")
+                    st.write(art["summary"])
+                    if art["limit"]:
+                        st.markdown(f"**정관 한도**: `{art['limit']}`")
+                    st.markdown(f"**공시 트리거**: {art['trigger']}")
+                with c2:
+                    st.markdown(f"**공시 의무**")
+                    st.write(art["disclosure"])
+                    st.markdown(f"**제출 서식**: `{art['form']}`")
+                    st.markdown(f"**제출 기한**: {art['deadline']}")
+
+    # ── Tab 2: 변경 시뮬레이터 ─────────────────────────────────────
+    with tab2:
+        st.markdown("### 정관 변경 시뮬레이터")
+        st.info("변경하려는 조항을 선택하면 발생하는 공시 의무를 확인할 수 있습니다.")
+
+        article_labels = [f"{a['article']} {a['title']}" for a in ARTICLES]
+        selected = st.multiselect("변경 예정 조항 선택", article_labels, key="art_sel")
+
+        if selected:
+            st.markdown("---")
+            st.markdown("### 발생하는 공시 의무")
+
+            checklist = []
+            for label in selected:
+                art = next((a for a in ARTICLES if f"{a['article']} {a['title']}" == label), None)
+                if art:
+                    checklist.append(art)
+
+            # 요약 메트릭
+            high_cnt = sum(1 for a in checklist if a["risk"] == "high")
+            med_cnt  = sum(1 for a in checklist if a["risk"] == "medium")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("선택 조항 수", len(checklist))
+            c2.metric("즉시공시 항목", high_cnt, delta=None)
+            c3.metric("주총후공시 항목", med_cnt)
+
+            st.markdown("---")
+            for art in checklist:
+                risk_icon = "🔴" if art["risk"] == "high" else "🟡"
+                st.markdown(f"""
+<div style="background:white;border-left:4px solid {'#E53935' if art['risk']=='high' else '#FFB300'};
+border-radius:4px;padding:12px 16px;margin:8px 0;box-shadow:0 1px 4px rgba(0,0,0,0.07)">
+<b>{risk_icon} {art['article']} {art['title']}</b><br>
+📋 <b>서식</b>: {art['form']}<br>
+⏰ <b>기한</b>: {art['deadline']}<br>
+📌 <b>내용</b>: {art['disclosure']}
+</div>
+""", unsafe_allow_html=True)
+
+            st.markdown("---")
+            st.warning(
+                "**주의**: 정관 변경은 반드시 주주총회 특별결의(출석 의결권의 2/3 + 발행주식 1/3 이상 찬성) 전에 "
+                "주주총회 소집 공시(2주 전)를 완료해야 합니다."
+            )
+        else:
+            st.caption("변경 예정 조항을 하나 이상 선택하세요.")
+
+    # ── Tab 3: 자본조달 한도 체크 ──────────────────────────────────
+    with tab3:
+        st.markdown("### 자본조달 정관 한도 체크")
+        st.info("CB·BW 발행 예정금액을 입력하면 정관 한도 대비 여유분을 계산합니다.")
+
+        col_l, col_r = st.columns([1, 1], gap="large")
+
+        with col_l:
+            st.markdown("#### 정관 한도 (변경 시 수정)")
+            cb_limit = st.number_input("전환사채(CB) 정관 한도 (억원)", min_value=0,
+                                       value=CURRENT_CB_BW["CB_limit"], step=10, format="%d", key="cb_limit")
+            bw_limit = st.number_input("신주인수권부사채(BW) 정관 한도 (억원)", min_value=0,
+                                       value=CURRENT_CB_BW["BW_limit"], step=10, format="%d", key="bw_limit")
+            st.markdown("#### 현재 발행 잔액")
+            cb_current = st.number_input("CB 현재 잔액 (억원)", min_value=0,
+                                         value=CURRENT_CB_BW["CB_issued"], step=10, format="%d", key="cb_cur")
+            bw_current = st.number_input("BW 현재 잔액 (억원)", min_value=0,
+                                         value=CURRENT_CB_BW["BW_issued"], step=10, format="%d", key="bw_cur")
+
+        with col_r:
+            st.markdown("#### 신규 발행 예정")
+            cb_new = st.number_input("CB 신규 발행 예정 (억원)", min_value=0, value=0, step=10, format="%d", key="cb_new")
+            bw_new = st.number_input("BW 신규 발행 예정 (억원)", min_value=0, value=0, step=10, format="%d", key="bw_new")
+
+            st.markdown("---")
+
+            cb_after = cb_current + cb_new
+            bw_after = bw_current + bw_new
+            cb_margin = cb_limit - cb_after
+            bw_margin = bw_limit - bw_after
+
+            st.markdown("#### 한도 여유 분석")
+
+            cb_ok = cb_margin >= 0
+            bw_ok = bw_margin >= 0
+
+            c1, c2 = st.columns(2)
+            c1.metric("CB 발행 후 잔액", f"{cb_after:,}억 / {cb_limit:,}억",
+                      delta=f"여유 {cb_margin:,}억" if cb_ok else f"한도초과 {-cb_margin:,}억",
+                      delta_color="normal" if cb_ok else "inverse")
+            c2.metric("BW 발행 후 잔액", f"{bw_after:,}억 / {bw_limit:,}억",
+                      delta=f"여유 {bw_margin:,}억" if bw_ok else f"한도초과 {-bw_margin:,}억",
+                      delta_color="normal" if bw_ok else "inverse")
+
+        st.markdown("---")
+
+        if not cb_ok or not bw_ok:
+            exceeded = []
+            if not cb_ok:
+                exceeded.append(f"CB {-cb_margin:,}억원 초과 → 정관 제17조 한도 변경(주총 특별결의) 必")
+            if not bw_ok:
+                exceeded.append(f"BW {-bw_margin:,}억원 초과 → 정관 제18조 한도 변경(주총 특별결의) 必")
+            st.error("**한도 초과 — 정관 변경 선행 필요**\n\n" + "\n".join(f"- {e}" for e in exceeded))
+        elif cb_new > 0 or bw_new > 0:
+            st.success("정관 한도 내 발행 가능합니다. 이사회 결의 후 당일 주요사항보고서를 제출하세요.")
+
+        st.markdown("---")
+        st.markdown("#### 수권주식 한도 (제5조)")
+        auth_shares = 500_000_000
+        col1, col2, col3 = st.columns(3)
+        col1.metric("수권주식 총수", "5억 주")
+        col2.metric("주당 액면가", "100원")
+        col3.metric("최대 자본금", "500억원")
+        st.caption("수권주식 한도 초과 증자 시 정관 변경(주총 특별결의) 후 유상증자 주요사항보고서 제출 필요.")
+
+
 def show_guide():
     """사용 가이드"""
     st.markdown("## 📖 사용 가이드")
@@ -836,9 +1086,9 @@ def show_info():
         st.markdown("### 로드맵")
         st.markdown("""
         - ✅ Phase 1: 규칙DB + 계산엔진
-        - 🚀 Phase 2: Streamlit UI (진행 중)
-        - 📅 Phase 3: PDF 파싱 + AI
-        - 📅 Phase 4: 배포 및 최적화
+        - ✅ Phase 2: Streamlit UI
+        - ✅ Phase 3: PDF 파싱 + AI
+        - 🚀 Phase 4: 고도화 및 서비스화
         """)
 
 
