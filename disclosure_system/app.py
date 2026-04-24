@@ -1134,130 +1134,218 @@ def _extract_metrics_with_ai(text: str) -> dict:
         return {}
 
 
-def show_pdf_parsing():
-    """PDF 파싱 및 지표 추출 페이지"""
-    st.markdown("""
-    <div class="dart-card">
-        <div class="dart-card-title">감사보고서 PDF 자동 파싱</div>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown('<div class="section-header">감사보고서 PDF 파싱</div>', unsafe_allow_html=True)
+def _reports_index_path() -> Path:
+    return Path(__file__).parent / "data" / "saved_reports.json"
 
-    st.info("감사보고서(PDF)를 업로드하면 Gemini AI가 재무 지표를 자동 추출하고 바로 공시 판정을 계산합니다.")
 
-    uploaded_file = st.file_uploader("감사보고서 PDF 파일을 선택하세요", type=['pdf'])
-
-    if uploaded_file is None:
-        return
-
-    # ── PDF 텍스트 추출 ──────────────────────────────────
-    with st.spinner("PDF 텍스트 추출 중..."):
-        import fitz
+def _load_saved_reports() -> list:
+    p = _reports_index_path()
+    if p.exists():
+        import json as _json
         try:
-            pdf_bytes = uploaded_file.read()
-            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-            full_text = "".join(page.get_text() for page in doc)
-            doc.close()
-        except Exception as e:
-            st.error(f"PDF 열기 실패: {e}")
-            return
+            return _json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            return []
+    return []
 
-    # ── AI 재무지표 추출 ─────────────────────────────────
-    with st.spinner("Gemini AI로 재무지표 분석 중..."):
-        ai_metrics = _extract_metrics_with_ai(full_text)
 
-    # AI 실패 시 정규식 fallback
-    if not ai_metrics:
-        parser = AuditReportParser()
-        temp_path = Path("data/temp_upload.pdf")
-        temp_path.parent.mkdir(parents=True, exist_ok=True)
-        temp_path.write_bytes(uploaded_file.getbuffer() if hasattr(uploaded_file, 'getbuffer') else pdf_bytes)
-        try:
-            ai_metrics = parser.parse_pdf(str(temp_path))
-        finally:
-            if temp_path.exists():
-                temp_path.unlink()
-        st.caption("※ AI 추출 실패 — 정규식 패턴으로 대체 추출했습니다.")
+def _save_report_entry(name: str, report_type: str, metrics: dict):
+    import json as _json, uuid as _uuid
+    from datetime import datetime as _dt
+    reports = _load_saved_reports()
+    entry = {
+        "id": str(_uuid.uuid4())[:8],
+        "name": name,
+        "report_type": report_type,
+        "saved_at": _dt.now().strftime("%Y-%m-%d %H:%M"),
+        "metrics": {k: v for k, v in metrics.items() if v is not None},
+    }
+    reports.insert(0, entry)
+    p = _reports_index_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(_json.dumps(reports, ensure_ascii=False, indent=2), encoding="utf-8")
+    return entry
 
-    # ── 추출 결과 표시 ────────────────────────────────────
-    st.markdown("---")
-    st.markdown("### 추출된 재무지표")
 
-    UNIT = 100_000_000
+def _delete_report_entry(report_id: str):
+    import json as _json
+    reports = [r for r in _load_saved_reports() if r["id"] != report_id]
+    p = _reports_index_path()
+    p.write_text(_json.dumps(reports, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _display_metrics(metrics: dict, unit: int = 100_000_000):
     label_map = {
         'sales': '매출액', 'total_assets': '자산총액', 'equity': '자기자본',
         'current_assets': '유동자산', 'current_liabilities': '유동부채',
-        'accumulated_loss': '누적결손금', 'capital': '자본금'
+        'accumulated_loss': '누적결손금', 'capital': '자본금',
     }
-
     cols = st.columns(4)
     for i, (key, label) in enumerate(label_map.items()):
-        val = ai_metrics.get(key)
-        display = f"{val // UNIT:,}억원" if val else "미추출"
+        val = metrics.get(key)
+        display = f"{int(val) // unit:,}억원" if val else "미추출"
         cols[i % 4].metric(label, display)
 
-    # 세션 저장 (계산 페이지에서도 사용 가능)
-    st.session_state['extracted_metrics'] = ai_metrics
 
-    # ── 바로 공시 판정 계산 ───────────────────────────────
-    st.markdown("---")
-    st.markdown("### 바로 공시 판정 계산")
+def show_pdf_parsing():
+    """보고서 PDF 파싱 및 지표 저장 페이지"""
+    UNIT = 100_000_000
 
-    col1, col2 = st.columns(2)
-    with col1:
-        transaction_uk = st.number_input("거래액 (억원)", min_value=0, value=0, step=1, format="%d", key="pdf_tx")
-    with col2:
-        market = st.selectbox("적용 시장", ["KOSPI", "KOSDAQ"], key="pdf_market")
+    st.markdown("""
+    <div class="dart-card">
+        <div class="dart-card-title">보고서 PDF 분석 · 저장</div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown('<div class="section-header">감사보고서 / 분기보고서 PDF 파싱</div>', unsafe_allow_html=True)
 
-    if st.button("공시 판정 계산", type="primary", key="pdf_calc"):
-        if transaction_uk == 0:
-            st.warning("거래액을 입력해 주세요.")
+    # ── 저장된 보고서 불러오기 ────────────────────────────
+    saved = _load_saved_reports()
+    tab_saved, tab_upload = st.tabs([f"저장된 보고서 ({len(saved)}개)", "새 보고서 업로드"])
+
+    # ── Tab: 저장된 보고서 ────────────────────────────────
+    with tab_saved:
+        if not saved:
+            st.info("아직 저장된 보고서가 없습니다. '새 보고서 업로드' 탭에서 PDF를 올려 저장하세요.")
+        else:
+            options = [f"[{r['report_type']}] {r['name']}  ({r['saved_at']})" for r in saved]
+            sel_idx = st.selectbox("보고서 선택", range(len(options)),
+                                   format_func=lambda i: options[i], key="saved_sel")
+            chosen = saved[sel_idx]
+
+            st.markdown("---")
+            st.markdown(f"#### {chosen['name']}")
+            st.caption(f"유형: {chosen['report_type']} | 저장일시: {chosen['saved_at']}")
+            _display_metrics(chosen["metrics"])
+
+            col_load, col_del = st.columns([2, 1])
+            with col_load:
+                if st.button("이 보고서를 공시 판정 계산에 적용", type="primary", key="load_saved"):
+                    st.session_state['extracted_metrics'] = chosen["metrics"]
+                    st.success(f"'{chosen['name']}' 지표가 적용됐습니다. '공시 판정 계산' 메뉴로 이동하세요.")
+            with col_del:
+                if st.button("삭제", key="del_saved"):
+                    _delete_report_entry(chosen["id"])
+                    st.rerun()
+
+    # ── Tab: 새 보고서 업로드 ────────────────────────────
+    with tab_upload:
+        st.info("PDF를 업로드하면 Gemini AI가 재무지표를 추출합니다. 추출 후 저장하면 다음부터 재업로드 없이 바로 사용할 수 있습니다.")
+
+        col_name, col_type = st.columns([2, 1])
+        with col_name:
+            report_name = st.text_input("보고서 이름", placeholder="예: 니어스랩 2025 연간 / 2025 Q1 분기")
+        with col_type:
+            report_type = st.selectbox("보고서 유형", ["감사보고서", "분기보고서", "반기보고서", "사업보고서"])
+
+        uploaded_file = st.file_uploader("PDF 파일 선택", type=['pdf'], key="pdf_upload")
+
+        if uploaded_file is None:
             return
 
-        sales        = ai_metrics.get('sales') or 0
-        total_assets = ai_metrics.get('total_assets') or 0
-        equity       = ai_metrics.get('equity') or 0
+        # PDF 텍스트 추출
+        with st.spinner("PDF 텍스트 추출 중..."):
+            import fitz
+            try:
+                pdf_bytes = uploaded_file.read()
+                doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+                full_text = "".join(page.get_text() for page in doc)
+                doc.close()
+            except Exception as e:
+                st.error(f"PDF 열기 실패: {e}")
+                return
 
-        if sales == 0 and total_assets == 0 and equity == 0:
-            st.error("재무지표가 추출되지 않아 계산할 수 없습니다. PDF를 확인해주세요.")
-            return
+        # AI 재무지표 추출
+        with st.spinner("Gemini AI로 재무지표 분석 중..."):
+            ai_metrics = _extract_metrics_with_ai(full_text)
 
-        from core import DisclosureCalculationEngine
-        db  = load_database()
-        eng = load_calculation_engine(db)
+        # AI 실패 시 정규식 fallback
+        if not ai_metrics:
+            parser = AuditReportParser()
+            temp_path = Path(__file__).parent / "data" / "temp_upload.pdf"
+            temp_path.parent.mkdir(parents=True, exist_ok=True)
+            temp_path.write_bytes(pdf_bytes)
+            try:
+                ai_metrics = parser.parse_pdf(str(temp_path))
+            finally:
+                if temp_path.exists():
+                    temp_path.unlink()
+            st.caption("※ AI 추출 실패 — 정규식 패턴으로 대체 추출했습니다.")
 
-        metrics_obj = FinancialMetrics(
-            sales=Decimal(str(sales)),
-            total_assets=Decimal(str(total_assets)),
-            equity=Decimal(str(equity)),
-            current_assets=Decimal(str(ai_metrics.get('current_assets') or 0)),
-            current_liabilities=Decimal(str(ai_metrics.get('current_liabilities') or 0)),
-            accumulated_loss=Decimal(str(ai_metrics.get('accumulated_loss') or 0)),
-        )
-        tx = Decimal(str(transaction_uk * UNIT))
-        results = eng.calculate(metrics_obj, tx, market=market.lower())
-        summary = eng.get_summary(results)
+        st.markdown("---")
+        st.markdown("### 추출된 재무지표")
+        _display_metrics(ai_metrics)
 
-        st.markdown("#### 판정 결과 요약")
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("검토 규칙", summary['total_rules_checked'])
-        c2.metric("공시 대상", summary['disclosure_required'])
-        c3.metric("검토 필요", summary['review_required'])
-        c4.metric("공시 미대상", summary['no_disclosure'])
+        st.session_state['extracted_metrics'] = ai_metrics
 
-        st.markdown("#### 상세 결과")
-        for r in results:
-            if r.result == DisclosureResult.DISCLOSURE_REQUIRED:
-                tag = "🔴 공시 대상"
-            elif r.result == DisclosureResult.REVIEW_REQUIRED:
-                tag = "🟡 검토 필요"
-            else:
-                tag = "🟢 공시 미대상"
-            with st.expander(f"{tag}  {r.rule['title']}"):
-                st.write(f"**기준액**: {int(r.threshold_amount) // UNIT:,}억원")
-                st.write(f"**거래액**: {transaction_uk:,}억원")
-                st.write(f"**비율**: {float(r.ratio):.1%}")
-                st.write(f"**근거**: {r.reason}")
+        # 저장
+        st.markdown("---")
+        col_save, col_apply = st.columns(2)
+        with col_save:
+            save_name = report_name.strip() or uploaded_file.name.replace(".pdf", "")
+            if st.button("보고서 저장 (다음부터 재업로드 불필요)", type="primary", key="save_report"):
+                _save_report_entry(save_name, report_type, ai_metrics)
+                st.success(f"'{save_name}' 저장 완료! '저장된 보고서' 탭에서 언제든 불러올 수 있습니다.")
+                st.rerun()
+        with col_apply:
+            st.info("지표가 세션에 적용됐습니다. 저장 없이 '공시 판정 계산' 메뉴를 바로 사용할 수도 있습니다.")
+
+        # ── 바로 공시 판정 계산 ───────────────────────────
+        st.markdown("---")
+        st.markdown("### 바로 공시 판정 계산")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            transaction_uk = st.number_input("거래액 (억원)", min_value=0, value=0, step=1, format="%d", key="pdf_tx")
+        with col2:
+            market = st.selectbox("적용 시장", ["KOSPI", "KOSDAQ"], key="pdf_market")
+
+        if st.button("공시 판정 계산", type="primary", key="pdf_calc"):
+            if transaction_uk == 0:
+                st.warning("거래액을 입력해 주세요.")
+                return
+
+            sales        = ai_metrics.get('sales') or 0
+            total_assets = ai_metrics.get('total_assets') or 0
+            equity       = ai_metrics.get('equity') or 0
+
+            if sales == 0 and total_assets == 0 and equity == 0:
+                st.error("재무지표가 추출되지 않아 계산할 수 없습니다. PDF를 확인해주세요.")
+                return
+
+            db  = load_database()
+            eng = load_calculation_engine(db)
+            metrics_obj = FinancialMetrics(
+                sales=Decimal(str(sales)),
+                total_assets=Decimal(str(total_assets)),
+                equity=Decimal(str(equity)),
+                current_assets=Decimal(str(ai_metrics.get('current_assets') or 0)),
+                current_liabilities=Decimal(str(ai_metrics.get('current_liabilities') or 0)),
+                accumulated_loss=Decimal(str(ai_metrics.get('accumulated_loss') or 0)),
+            )
+            tx = Decimal(str(transaction_uk * UNIT))
+            results = eng.calculate(metrics_obj, tx, market=market.lower())
+            summary = eng.get_summary(results)
+
+            st.markdown("#### 판정 결과 요약")
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("검토 규칙", summary['total_rules_checked'])
+            c2.metric("공시 대상", summary['disclosure_required'])
+            c3.metric("검토 필요", summary['review_required'])
+            c4.metric("공시 미대상", summary['no_disclosure'])
+
+            st.markdown("#### 상세 결과")
+            for r in results:
+                if r.result == DisclosureResult.DISCLOSURE_REQUIRED:
+                    tag = "🔴 공시 대상"
+                elif r.result == DisclosureResult.REVIEW_REQUIRED:
+                    tag = "🟡 검토 필요"
+                else:
+                    tag = "🟢 공시 미대상"
+                with st.expander(f"{tag}  {r.rule['title']}"):
+                    st.write(f"**기준액**: {int(r.threshold_amount) // UNIT:,}억원")
+                    st.write(f"**거래액**: {transaction_uk:,}억원")
+                    st.write(f"**비율**: {float(r.ratio):.1%}")
+                    st.write(f"**근거**: {r.reason}")
 
 
 def show_query_history():
