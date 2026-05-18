@@ -16,10 +16,12 @@ load_dotenv(Path(__file__).parent / ".env")
 
 # Streamlit Cloud Secrets → 환경변수로 주입
 import os
-if hasattr(st, "secrets"):
+try:
     for _k, _v in st.secrets.items():
         if isinstance(_v, str):
             os.environ.setdefault(_k, _v)
+except Exception:
+    pass
 
 from core import (
     DisclosureRuleDatabase,
