@@ -13,6 +13,6 @@ disclosure_system/data/*.pdf
 disclosure_system/data/*.db
 .bkit/
 .claude/
-data/
+/data/
 tmp_*.txt
 tmp_*.json
