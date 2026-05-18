@@ -11,3 +11,8 @@ data/temp_upload.pdf
 data/query_history.json
 disclosure_system/data/*.pdf
 disclosure_system/data/*.db
+.bkit/
+.claude/
+data/
+tmp_*.txt
+tmp_*.json

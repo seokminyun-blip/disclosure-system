@@ -27,9 +27,9 @@ from core import (
     FinancialMetrics,
     DisclosureResult,
     ReportGenerator,
-    QueryHistory,
     AuditReportParser,
-    LawApiClient
+    LawApiClient,
+    DartApiClient,
 )
 
 # 페이지 설정
@@ -338,7 +338,6 @@ def main():
                 "감사보고서 분석 (PDF)",
                 "공시 판정 계산",
                 "정관 공시 체크",
-                "조회 이력",
                 "AI 공시 어드바이저",
                 "사용 가이드",
                 "정보",
@@ -362,8 +361,7 @@ def main():
         show_calculation()
     elif page == "정관 공시 체크":
         show_articles_check()
-    elif page == "조회 이력":
-        show_query_history()
+
     elif page == "AI 공시 어드바이저":
         show_ai_advisor()
     elif page == "사용 가이드":
@@ -546,7 +544,10 @@ border-radius:8px;padding:16px 20px;margin-bottom:20px">
 <b style="color:#E0E0E0">② 거래 정보 입력</b> — 우측에서 거래 유형(카테고리)을 선택하고 거래금액(억원)을 입력하세요.<br>
 <b style="color:#E0E0E0">③ 시장 선택</b> — 상장된 시장(KOSPI / KOSDAQ)을 선택하면 해당 기준(%  임계치)이 자동 적용됩니다.<br>
 <b style="color:#E0E0E0">④ 공시 판정 계산 버튼 클릭</b> — 각 공시 규칙별 비율과 공시 필요 여부(✅ / ❌)가 표시됩니다.<br>
-<b style="color:#E0E0E0">⑤ 결과 저장</b> — Excel·PDF·JSON으로 다운로드하거나 조회 이력에 저장할 수 있습니다.
+<b style="color:#E0E0E0">⑤ DART 유사 사례 자동 조회</b> — 판정 결과에서 🔴 공시 대상이 하나 이상이면, 같은 카테고리의 실제 공시 사례를 DART에서 자동으로 가져와 링크로 보여줍니다.
+우측 "DART 유사 사례 조회" 섹션에서 회사명(선택)과 조회 기간을 먼저 설정하세요.
+회사명을 비워두면 전체 상장사 중 유사 공시 사례를, 상장사명을 입력하면 해당 회사 이력만 조회합니다.<br>
+<b style="color:#E0E0E0">⑥ 결과 다운로드</b> — Excel·PDF·JSON으로 저장할 수 있습니다.
 </div>
 </div>
 """, unsafe_allow_html=True)
@@ -581,6 +582,15 @@ border-radius:8px;padding:16px 20px;margin-bottom:20px">
 
         transaction_uk = st.number_input("거래액 (억원)", min_value=0, value=0, step=1, format="%d")
         market = st.selectbox("적용 시장", ["KOSPI", "KOSDAQ"])
+
+        st.markdown("---")
+        st.markdown("**DART 유사 사례 조회**")
+        dart_corp = st.text_input("회사명 (선택)", value="", key="dart_corp_single",
+                                  placeholder="입력 시 해당 회사만, 미입력 시 전체 시장",
+                                  help="DART 상장사명 입력 시 해당 회사 공시만 조회. 비상장사이거나 비워두면 전체 시장 유사 사례를 가져옵니다.")
+        dart_months = st.selectbox("조회 기간", [3, 6, 12, 24], index=1,
+                                   format_func=lambda x: f"최근 {x}개월",
+                                   key="dart_months_single")
 
         st.markdown("---")
         st.markdown("**재무지표 요약**")
@@ -619,6 +629,16 @@ border-radius:8px;padding:16px 20px;margin-bottom:20px">
             st.warning("재무 지표(매출액, 자산총액, 자기자본 중 하나 이상)를 입력해 주세요.")
             return
 
+        # 계산 수행 후 session_state에 저장 (버튼 중첩 문제 해결)
+        all_results = engine.calculate(metrics, Decimal(str(transaction_amount)), market=market.lower())
+        results_to_save = [r for r in all_results if r.rule.get('category') == selected_category] \
+                          if selected_category != "전체" else all_results
+        st.session_state['_single_results'] = results_to_save
+        st.session_state['_single_metrics'] = metrics.to_dict()
+        st.session_state['_single_tx'] = transaction_amount
+        st.session_state['_single_market'] = market
+        st.session_state['_single_inputs'] = (sales_uk, total_assets_uk, equity_uk, transaction_uk, selected_category)
+
         st.markdown("### 계산 결과")
 
         col1, col2, col3, col4 = st.columns(4)
@@ -632,20 +652,10 @@ border-radius:8px;padding:16px 20px;margin-bottom:20px">
             st.metric("거래액", f"{transaction_uk:,}억원")
         
         st.markdown("---")
-        
-        # 계산 (전체 규칙 대상)
-        all_results = engine.calculate(
-            metrics,
-            Decimal(str(transaction_amount)),
-            market=market.lower()
-        )
 
-        # 카테고리 필터링
+        results = st.session_state['_single_results']
         if selected_category != "전체":
-            results = [r for r in all_results if r.rule.get('category') == selected_category]
             st.info(f"거래 유형 **{selected_category}** 관련 규칙만 표시합니다.")
-        else:
-            results = all_results
 
         # 결과 요약
         summary = engine.get_summary(results)
@@ -736,18 +746,40 @@ border-radius:8px;padding:16px 20px;margin-bottom:20px">
                 file_name=f"공시판정_{Decimal(str(transaction_amount)).__format__(',')}_데이터.json",
                 mime="application/json"
             )
-        
-        # 조회 이력에 저장
-        history = QueryHistory()
-        if st.button("💾 조회 이력에 저장"):
-            query_id = history.save_query(
-                results,
-                financial_metrics_dict,
-                transaction_amount,
-                market.lower(),
-                notes=f"공시 판정 계산: {transaction_amount}원"
+
+        # ── DART 유사 공시 사례 자동 조회 ──────────────────────────
+        triggered_cats = list({
+            r.rule.get('category') for r in results
+            if r.result == DisclosureResult.DISCLOSURE_REQUIRED
+        })
+        if triggered_cats:
+            st.markdown("---")
+            st.markdown("### 🔍 DART 유사 공시 사례")
+            scope = f"'{dart_corp}'" if dart_corp.strip() else "전체 시장"
+            st.caption(
+                f"{scope} · 최근 {dart_months}개월 · "
+                f"트리거 카테고리: {', '.join(triggered_cats)}"
             )
-            st.success(f"✅ 조회 이력이 저장되었습니다. (ID: {query_id})")
+            with st.spinner("DART 공시 조회 중..."):
+                try:
+                    dart_items = DartApiClient().search_disclosures(
+                        dart_corp.strip() or "", triggered_cats, months=dart_months
+                    )
+                    if dart_items:
+                        st.success(f"**{len(dart_items)}건** 조회됨")
+                        for item in dart_items[:20]:
+                            rcept_no = item.get("rcept_no", "")
+                            date = item.get("rcept_dt", "")
+                            title = item.get("report_nm", "")
+                            corp = item.get("corp_name", "")
+                            url = DartApiClient.disclosure_url(rcept_no)
+                            st.markdown(f"- `{date}` **{corp}** — [{title}]({url})")
+                    else:
+                        st.info("해당 기간 내 유사 공시 이력이 없습니다.")
+                except ValueError as e:
+                    st.error(str(e))
+                except Exception as e:
+                    st.error(f"DART API 오류: {e}")
 
 
 def show_batch_calculation(db, engine):
@@ -1528,90 +1560,6 @@ border-radius:8px;padding:16px 20px;margin-bottom:16px">
                     st.write(f"**근거**: {r.reason}")
 
 
-def show_query_history():
-    """조회 이력 관리 페이지"""
-    st.markdown("""
-    <div class="dart-card">
-        <div class="dart-card-title">공시 판정 조회 이력</div>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown('<div class="section-header">조회 이력</div>', unsafe_allow_html=True)
-
-    st.markdown("""
-<div style="background:#1A1A1A;border:1px solid #2A2A2A;border-left:3px solid #F59E0B;
-border-radius:8px;padding:16px 20px;margin-bottom:20px">
-<div style="color:#FFFFFF;font-weight:700;margin-bottom:10px">📋 조회 이력 사용 방법</div>
-<div style="color:#AAAAAA;font-size:0.88rem;line-height:2">
-<b style="color:#E0E0E0">조회 이력 저장</b> — 공시 판정 계산 결과 화면 하단의 <b>💾 조회 이력에 저장</b> 버튼을 누르면 이 페이지에 자동 기록됩니다.<br>
-<b style="color:#E0E0E0">이력 조회</b> — 과거에 판정한 거래 건을 날짜·금액·결과별로 다시 확인할 수 있습니다.<br>
-<b style="color:#E0E0E0">이력 삭제</b> — 불필요한 기록은 개별 삭제할 수 있습니다.<br>
-<span style="color:#F59E0B">💡 동일 거래를 반복 검토하거나, 연간 공시 이력을 관리할 때 활용하세요.</span>
-</div>
-</div>
-""", unsafe_allow_html=True)
-
-    history = QueryHistory()
-    
-    # 통계 표시
-    stats = history.get_statistics()
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("총 조회 수", stats['total_queries'])
-    with col2:
-        st.metric("공시 대상 건수", stats['status_distribution'].get('공시대상', 0))
-    with col3:
-        # avg_transaction_amount가 None일 경우 대비
-        avg_amount = stats['avg_transaction_amount'] if stats['avg_transaction_amount'] is not None else 0
-        st.metric("평균 거래액", format_currency(avg_amount))
-    with col4:
-        st.metric("최근 7일", stats['recent_7days_queries'])
-    
-    st.markdown("---")
-    
-    # 이력 목록
-    st.markdown("### 📋 최근 조회 이력")
-    
-    market_filter = st.selectbox("시장 필터", ["전체", "kospi", "kosdaq"], index=0)
-    status_filter = st.selectbox("상태 필터", ["전체", "공시대상", "검토필요", "공시미대상"], index=0)
-    
-    market_code = None if market_filter == "전체" else market_filter
-    status_code = None if status_filter == "전체" else status_filter
-    
-    history_list = history.get_history(limit=50, market=market_code, status=status_code)
-    
-    if not history_list:
-        st.info("조회 이력이 없습니다.")
-    else:
-        for item in history_list:
-            with st.expander(f"[{item['query_date'][:10]}] {item['disclosure_status']} - {format_currency(item['transaction_amount'])} ({item['market'].upper()})"):
-                detail = history.get_query_detail(item['id'])
-                if detail:
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.markdown("**재무 지표**")
-                        for m_name, m_val in detail['financial_metrics'].items():
-                            st.write(f"- {m_name}: {format_currency(m_val)}")
-                    
-                    with col2:
-                        st.markdown("**판정 요약**")
-                        st.write(f"- 전체 규칙: {item['total_rules']}")
-                        st.write(f"- 공시 대상: {item['disclosure_required']}")
-                        st.write(f"- 검토 필요: {item['review_required']}")
-                    
-                    st.markdown("**상세 규칙 결과**")
-                    df_results = []
-                    for r in detail['rule_results']:
-                        df_results.append({
-                            "규칙명": r['rule_title'],
-                            "결과": r['result'],
-                            "비율": f"{r['ratio']:.2%}",
-                            "판단근거": r['reason']
-                        })
-                    st.table(df_results)
-                    
-                    if st.button("🗑️ 삭제", key=f"del_{item['id']}"):
-                        history.delete_query(item['id'])
-                        st.success("삭제되었습니다. 페이지를 새로고침하세요.")
 
 
 def show_ai_advisor():

@@ -6,9 +6,9 @@ from .calculation_engine import (
     DisclosureResult
 )
 from .report_generator import ReportGenerator
-from .query_history import QueryHistory
 from .pdf_parser import AuditReportParser
 from .law_api import LawApiClient
+from .dart_api import DartApiClient
 
 __all__ = [
     'DisclosureRuleDatabase',
@@ -17,7 +17,7 @@ __all__ = [
     'CalculationResult',
     'DisclosureResult',
     'ReportGenerator',
-    'QueryHistory',
     'AuditReportParser',
-    'LawApiClient'
+    'LawApiClient',
+    'DartApiClient',
 ]
