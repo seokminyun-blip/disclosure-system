@@ -3,7 +3,7 @@ DART Open API 클라이언트 — 공시 목록 조회
 """
 import os
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional, List
 
 DART_BASE = "https://opendart.fss.or.kr/api"
@@ -50,15 +50,27 @@ class DartApiClient:
             raise ValueError("DART_API_KEY 미설정 — .env 또는 Streamlit Secrets에 추가하세요")
 
         # 3개월 단위 청크 생성 (DART API corp_name 검색 시 3개월 제한)
+        # timedelta(days=90)은 경계값 오류 발생 — 달력 기준 month 뺄셈으로 정확히 계산
+        def _subtract_months(dt: datetime, m: int) -> datetime:
+            month = dt.month - m
+            year = dt.year
+            while month <= 0:
+                month += 12
+                year -= 1
+            import calendar as _cal
+            day = min(dt.day, _cal.monthrange(year, month)[1])
+            return dt.replace(year=year, month=month, day=day)
+
         chunks: list = []
         end_dt = datetime.today()
-        remaining = months
-        while remaining > 0:
-            chunk = min(3, remaining)
-            start_dt = end_dt - timedelta(days=chunk * 30)
+        total_months = months
+        consumed = 0
+        while consumed < total_months:
+            chunk = min(3, total_months - consumed)
+            start_dt = _subtract_months(end_dt, chunk)
             chunks.append((start_dt, end_dt))
             end_dt = start_dt
-            remaining -= chunk
+            consumed += chunk
 
         # pblntf_override가 있으면 직접 사용, 없으면 카테고리에서 매핑
         if pblntf_override:
