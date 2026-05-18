@@ -21,7 +21,7 @@ class DisclosureAIAdvisor:
         if self.api_key and self.api_key != "your_google_api_key_here":
             try:
                 genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel("gemini-1.5-flash")
+                self.model = genai.GenerativeModel("gemini-2.0-flash")
             except Exception as e:
                 print(f"Gemini 클라이언트 초기화 실패: {e}")
 

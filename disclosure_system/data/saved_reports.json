@@ -1,0 +1,17 @@
+[
+  {
+    "id": "7c535e40",
+    "name": "[니어스랩]연결감사보고서(2026.04.03)",
+    "report_type": "감사보고서",
+    "saved_at": "2026-05-18 11:44",
+    "metrics": {
+      "sales": 6658007488,
+      "total_assets": 23108410139,
+      "equity": -87302393109,
+      "current_assets": 18303482053,
+      "current_liabilities": 105295098782,
+      "accumulated_loss": -93028483678,
+      "capital": 127223000
+    }
+  }
+]

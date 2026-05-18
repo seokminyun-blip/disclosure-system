@@ -1,4 +1,5 @@
 .env
+disclosure_system/.env
 __pycache__/
 *.pyc
 *.pyo

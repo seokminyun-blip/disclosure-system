@@ -6,9 +6,20 @@ import streamlit as st
 from decimal import Decimal
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 
 # 경로 설정
 sys.path.insert(0, str(Path(__file__).parent))
+
+# .env 로드 (로컬 개발용 — Streamlit Cloud에서는 st.secrets 사용)
+load_dotenv(Path(__file__).parent / ".env")
+
+# Streamlit Cloud Secrets → 환경변수로 주입
+import os
+if hasattr(st, "secrets"):
+    for _k, _v in st.secrets.items():
+        if isinstance(_v, str):
+            os.environ.setdefault(_k, _v)
 
 from core import (
     DisclosureRuleDatabase,
@@ -33,202 +44,242 @@ st.set_page_config(
 import matplotlib.pyplot as plt
 plt.rcParams['font.family'] = 'DejaVu Sans'
 
-# DART 스타일 CSS
+# 다크 모던 CSS
 st.markdown("""
 <style>
 /* ── 전체 배경 ── */
-.stApp { background-color: #EEF4FB; }
+.stApp { background-color: #0D0D0D !important; }
+.main .block-container { padding-top: 1.5rem; }
 
-/* ── 사이드바: DART 네이게이션 블루 ── */
+/* ── 사이드바 ── */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0C3D8E 0%, #1565C0 100%);
-    border-right: none;
+    background: #111111 !important;
+    border-right: 1px solid #222222 !important;
 }
 [data-testid="stSidebar"] .stMarkdown,
 [data-testid="stSidebar"] label,
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] span {
-    color: #E3F2FD !important;
+    color: #CCCCCC !important;
 }
 [data-testid="stSidebar"] h1,
 [data-testid="stSidebar"] h2,
 [data-testid="stSidebar"] h3 {
-    color: white !important;
-    border-bottom: 1px solid rgba(255,255,255,0.2);
+    color: #FFFFFF !important;
+    border-bottom: 1px solid #2A2A2A;
     padding-bottom: 8px;
 }
 [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label {
-    color: #E3F2FD !important;
-    padding: 6px 10px;
-    border-radius: 4px;
+    color: #CCCCCC !important;
+    padding: 7px 12px;
+    border-radius: 6px;
     transition: background 0.15s;
 }
 [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label:hover {
-    background: rgba(255,255,255,0.15) !important;
+    background: rgba(255,255,255,0.07) !important;
 }
 
-/* ── 상단 헤더 배너 ── */
-.dart-topbar {
-    background: linear-gradient(90deg, #0C3D8E 0%, #1976D2 60%, #42A5F5 100%);
-    color: white;
-    padding: 14px 28px;
-    border-radius: 8px;
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+/* ── 히어로 배너 ── */
+.hero-section {
+    background: #0D0D0D;
+    padding: 48px 0 32px 0;
+    text-align: center;
+    margin-bottom: 8px;
 }
-.dart-topbar .logo-text {
-    font-size: 1.6rem;
+.hero-title {
+    font-size: 2.4rem;
     font-weight: 800;
-    letter-spacing: 2px;
-    color: white;
+    color: #FFFFFF;
+    line-height: 1.25;
+    letter-spacing: -0.5px;
+    margin-bottom: 14px;
 }
-.dart-topbar .subtitle {
+.hero-subtitle {
+    font-size: 1rem;
+    color: #888888;
+    line-height: 1.6;
+    margin-bottom: 32px;
+}
+.hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+.hero-stat-card {
+    background: #1A1A1A;
+    border: 1px solid #2A2A2A;
+    border-radius: 14px;
+    padding: 24px 36px;
+    text-align: left;
+    min-width: 180px;
+}
+.hero-stat-label {
     font-size: 0.85rem;
-    opacity: 0.85;
-    margin-top: 2px;
+    color: #777777;
+    margin-bottom: 10px;
+    line-height: 1.4;
 }
-.dart-topbar .badge {
-    background: rgba(255,255,255,0.2);
-    border: 1px solid rgba(255,255,255,0.4);
-    border-radius: 20px;
-    padding: 4px 14px;
-    font-size: 0.8rem;
-    font-weight: 600;
+.hero-stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #FFFFFF;
+    letter-spacing: -1px;
 }
 
 /* ── 섹션 제목 ── */
 .section-header {
-    color: #0C3D8E;
-    font-size: 1.25rem;
+    color: #FFFFFF;
+    font-size: 1.2rem;
     font-weight: 700;
-    border-bottom: 2px solid #1565C0;
-    padding-bottom: 8px;
+    border-bottom: 1px solid #2A2A2A;
+    padding-bottom: 10px;
     margin-top: 1.2rem;
     margin-bottom: 1rem;
 }
 
-/* ── 검색 카드 (공시통합검색 박스) ── */
+/* ── 카드 ── */
 .dart-card {
-    background: white;
-    border: 1px solid #B0C4DE;
-    border-top: 3px solid #1565C0;
-    border-radius: 6px;
+    background: #1A1A1A;
+    border: 1px solid #2A2A2A;
+    border-radius: 12px;
     padding: 20px 24px;
-    box-shadow: 0 2px 8px rgba(12,61,142,0.08);
     margin-bottom: 16px;
 }
 .dart-card-title {
-    color: #0C3D8E;
-    font-size: 1.1rem;
+    color: #FFFFFF;
+    font-size: 1.05rem;
     font-weight: 700;
     text-align: center;
-    margin-bottom: 14px;
+    margin-bottom: 4px;
 }
 
 /* ── 버튼 ── */
 .stButton > button {
-    background-color: #1565C0 !important;
+    background-color: #2563EB !important;
     color: white !important;
     border: none !important;
-    border-radius: 4px !important;
+    border-radius: 8px !important;
     font-weight: 600 !important;
     transition: background 0.2s !important;
+    padding: 0.5rem 1.2rem !important;
 }
 .stButton > button:hover {
-    background-color: #0C3D8E !important;
-    color: white !important;
+    background-color: #1D4ED8 !important;
 }
 
-/* ── 텍스트 입력 ── */
-.stTextInput > div > div > input {
-    border: 1px solid #4A90D9 !important;
-    border-radius: 4px !important;
+/* ── 입력 필드 ── */
+.stTextInput > div > div > input,
+.stNumberInput > div > div > input {
+    background: #1A1A1A !important;
+    color: #F0F0F0 !important;
+    border: 1px solid #333333 !important;
+    border-radius: 8px !important;
 }
-.stTextInput > div > div > input:focus {
-    border: 2px solid #1565C0 !important;
-    box-shadow: 0 0 0 3px rgba(21,101,192,0.12) !important;
+.stTextInput > div > div > input:focus,
+.stNumberInput > div > div > input:focus {
+    border: 1px solid #2563EB !important;
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.2) !important;
 }
 
 /* ── 탭 ── */
 .stTabs [data-baseweb="tab-list"] {
-    border-bottom: 2px solid #1565C0 !important;
+    background: transparent !important;
+    border-bottom: 1px solid #2A2A2A !important;
     gap: 4px;
 }
 .stTabs [data-baseweb="tab"] {
-    color: #1565C0 !important;
+    background: transparent !important;
+    color: #888888 !important;
     font-weight: 600 !important;
-    border-radius: 4px 4px 0 0 !important;
+    border-radius: 6px 6px 0 0 !important;
     padding: 8px 20px !important;
+    border: none !important;
 }
 .stTabs [aria-selected="true"] {
-    background-color: #1565C0 !important;
-    color: white !important;
+    background: #1A1A1A !important;
+    color: #FFFFFF !important;
+    border-bottom: 2px solid #2563EB !important;
 }
 
 /* ── 메트릭 카드 ── */
 [data-testid="stMetric"] {
-    background: white;
-    border: 1px solid #B0C4DE;
-    border-top: 3px solid #1565C0;
-    border-radius: 6px;
-    padding: 14px 18px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    background: #1A1A1A;
+    border: 1px solid #2A2A2A;
+    border-radius: 12px;
+    padding: 16px 20px;
 }
-[data-testid="stMetricLabel"] { color: #0C3D8E !important; font-weight: 600 !important; }
-[data-testid="stMetricValue"] { color: #1A237E !important; }
+[data-testid="stMetricLabel"] { color: #888888 !important; font-size: 0.82rem !important; }
+[data-testid="stMetricValue"] { color: #FFFFFF !important; font-weight: 800 !important; }
+[data-testid="stMetricDelta"] { font-size: 0.8rem !important; }
 
 /* ── 익스팬더 ── */
 .stExpander {
-    background: white !important;
-    border: 1px solid #B0C4DE !important;
-    border-left: 4px solid #1565C0 !important;
-    border-radius: 4px !important;
+    background: #1A1A1A !important;
+    border: 1px solid #2A2A2A !important;
+    border-radius: 10px !important;
     margin-bottom: 8px !important;
 }
-details summary { color: #0C3D8E !important; font-weight: 600 !important; }
+details summary { color: #DDDDDD !important; font-weight: 600 !important; }
 
 /* ── 판정 결과 박스 ── */
 .result-disclosure {
-    background: #FFF0F0;
-    border-left: 4px solid #E53935;
-    border-radius: 4px;
+    background: rgba(239,68,68,0.1);
+    border-left: 3px solid #EF4444;
+    border-radius: 6px;
     padding: 12px;
     margin: 6px 0;
 }
 .result-review {
-    background: #FFFDE7;
-    border-left: 4px solid #FFB300;
-    border-radius: 4px;
+    background: rgba(234,179,8,0.1);
+    border-left: 3px solid #EAB308;
+    border-radius: 6px;
     padding: 12px;
     margin: 6px 0;
 }
 .result-no-disclosure {
-    background: #F1F8E9;
-    border-left: 4px solid #43A047;
-    border-radius: 4px;
+    background: rgba(34,197,94,0.1);
+    border-left: 3px solid #22C55E;
+    border-radius: 6px;
     padding: 12px;
     margin: 6px 0;
 }
 
 /* ── 테이블 ── */
 .stDataFrame thead tr th {
-    background-color: #0C3D8E !important;
-    color: white !important;
+    background-color: #1A1A1A !important;
+    color: #FFFFFF !important;
 }
+.stDataFrame { border: 1px solid #2A2A2A !important; }
 
 /* ── 셀렉트박스 ── */
 .stSelectbox [data-baseweb="select"] > div {
-    border: 1px solid #4A90D9 !important;
-    border-radius: 4px !important;
+    background: #1A1A1A !important;
+    border: 1px solid #333333 !important;
+    border-radius: 8px !important;
+    color: #F0F0F0 !important;
 }
 
 /* ── 구분선 ── */
-hr { border-color: #B0C4DE !important; }
+hr { border-color: #2A2A2A !important; }
 
-/* ── info/success/warning 박스 ── */
-.stAlert { border-radius: 4px !important; }
+/* ── info/success/warning/error ── */
+.stAlert {
+    border-radius: 8px !important;
+    background: #1A1A1A !important;
+    border: 1px solid #2A2A2A !important;
+    color: #DDDDDD !important;
+}
+
+/* ── 컨테이너 border ── */
+[data-testid="stVerticalBlockBorderWrapper"] > div {
+    background: #1A1A1A !important;
+    border: 1px solid #2A2A2A !important;
+    border-radius: 12px !important;
+}
+
+/* ── caption / small text ── */
+.stCaption, small { color: #666666 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -276,17 +327,6 @@ def format_ratio(value):
 
 # 메인 페이지
 def main():
-    # DART 스타일 상단 배너
-    st.markdown("""
-    <div class="dart-topbar">
-        <div>
-            <div class="logo-text">공시자가진단</div>
-            <div class="subtitle">신속하고 정확한 공시 의무 판정 시스템</div>
-        </div>
-        <div class="badge">Phase 3 · RELEASE</div>
-    </div>
-    """, unsafe_allow_html=True)
-
     # 사이드바 메뉴
     with st.sidebar:
         st.markdown("## 📋 메뉴")
@@ -399,7 +439,36 @@ def show_rule_search():
     db = load_database()
     law_client = load_law_client()
 
-    # DART 스타일 검색 카드
+    # 히어로 배너 (공시규칙 검색 페이지에서만 표시)
+    st.markdown("""
+    <div class="hero-section">
+        <div class="hero-title">공시 의무를 자동으로<br>판정하기 위해 출발했습니다.</div>
+        <div class="hero-subtitle">
+            공시 누락 리스크를 방지하고, 규정을 빠르고 정확하게 검토할 수 있습니다.<br>
+            니어스랩 전용 자가진단 시스템
+        </div>
+        <div class="hero-stats">
+            <div class="hero-stat-card">
+                <div class="hero-stat-label">공시 규칙 DB</div>
+                <div class="hero-stat-value">49+</div>
+            </div>
+            <div class="hero-stat-card">
+                <div class="hero-stat-label">지원 시장</div>
+                <div class="hero-stat-value">KOSPI · KOSDAQ</div>
+            </div>
+            <div class="hero-stat-card">
+                <div class="hero-stat-label">정관 조항 매핑</div>
+                <div class="hero-stat-value">7개</div>
+            </div>
+            <div class="hero-stat-card">
+                <div class="hero-stat-label">AI 분석</div>
+                <div class="hero-stat-value">Gemini</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 검색 카드
     st.markdown("""
     <div class="dart-card">
         <div class="dart-card-title">공시규칙 통합검색</div>
@@ -467,6 +536,21 @@ def show_single_calculation(db, engine):
     """개별 계산"""
     UNIT = 100_000_000
 
+    st.markdown("""
+<div style="background:#1A1A1A;border:1px solid #2A2A2A;border-left:3px solid #2563EB;
+border-radius:8px;padding:16px 20px;margin-bottom:20px">
+<div style="color:#FFFFFF;font-weight:700;margin-bottom:10px">📋 개별 계산 사용 방법</div>
+<div style="color:#AAAAAA;font-size:0.88rem;line-height:2">
+<b style="color:#E0E0E0">① 재무 기준 지표 확인</b> — 좌측 수치는 최근 감사보고서 기준으로 자동 입력됩니다.
+새 회계연도 감사보고서가 나왔다면 <b>감사보고서 분석(PDF)</b> 메뉴에서 먼저 업로드·저장하세요.<br>
+<b style="color:#E0E0E0">② 거래 정보 입력</b> — 우측에서 거래 유형(카테고리)을 선택하고 거래금액(억원)을 입력하세요.<br>
+<b style="color:#E0E0E0">③ 시장 선택</b> — 상장된 시장(KOSPI / KOSDAQ)을 선택하면 해당 기준(%  임계치)이 자동 적용됩니다.<br>
+<b style="color:#E0E0E0">④ 공시 판정 계산 버튼 클릭</b> — 각 공시 규칙별 비율과 공시 필요 여부(✅ / ❌)가 표시됩니다.<br>
+<b style="color:#E0E0E0">⑤ 결과 저장</b> — Excel·PDF·JSON으로 다운로드하거나 조회 이력에 저장할 수 있습니다.
+</div>
+</div>
+""", unsafe_allow_html=True)
+
     # PDF 추출값 우선, 없으면 니어스랩 2025 기본값 사용 (원 → 억원 변환)
     default_vals = st.session_state.get('extracted_metrics') or NIARTHLAB_2025
     def to_uk(key, fallback=0):
@@ -479,13 +563,13 @@ def show_single_calculation(db, engine):
 
     with left:
         st.markdown("#### 재무 기준 지표")
-        st.caption("니어스랩 2025 감사보고서 기준 — 연도 변경 시에만 수정")
+        st.caption("감사보고서 PDF 업로드 시 자동 반영 — 연도 변경 시에만 수정")
         sales_uk            = st.number_input("매출액 (억원)",      min_value=0,      value=to_uk('sales'),               step=1, format="%d")
         total_assets_uk     = st.number_input("자산총액 (억원)",     min_value=0,      value=to_uk('total_assets'),         step=1, format="%d")
         equity_uk           = st.number_input("자기자본 (억원)",     min_value=-99999, value=to_uk('equity'),               step=1, format="%d")
         current_assets_uk   = st.number_input("유동자산 (억원)",     min_value=0,      value=to_uk('current_assets'),       step=1, format="%d")
         current_liabilities_uk = st.number_input("유동부채 (억원)",  min_value=0,      value=to_uk('current_liabilities'),  step=1, format="%d")
-        accumulated_loss_uk = st.number_input("누적결손금 (억원)",   min_value=0,      value=to_uk('accumulated_loss'),     step=1, format="%d")
+        accumulated_loss_uk = st.number_input("누적결손금 (억원)",   min_value=-99999, value=to_uk('accumulated_loss'),     step=1, format="%d")
 
     with right:
         st.markdown("#### 거래 정보 입력")
@@ -670,6 +754,21 @@ def show_batch_calculation(db, engine):
     """일괄 계산"""
     UNIT = 100_000_000
 
+    st.markdown("""
+<div style="background:#1A1A1A;border:1px solid #2A2A2A;border-left:3px solid #22C55E;
+border-radius:8px;padding:16px 20px;margin-bottom:20px">
+<div style="color:#FFFFFF;font-weight:700;margin-bottom:10px">📋 일괄 계산 사용 방법</div>
+<div style="color:#AAAAAA;font-size:0.88rem;line-height:2">
+<b style="color:#E0E0E0">① 재무 기준 지표 확인</b> — 좌측 수치는 최근 감사보고서 기준으로 자동 입력됩니다.
+새 회계연도라면 <b>감사보고서 분석(PDF)</b> 메뉴에서 먼저 업로드·저장하세요.<br>
+<b style="color:#E0E0E0">② 거래 개수 설정</b> — 한 번에 판정할 거래 수(최대 10건)를 선택하세요.<br>
+<b style="color:#E0E0E0">③ 거래별 입력</b> — 각 거래의 유형과 금액을 입력합니다. 동일 카테고리 거래가 여러 건이면 각각 행을 추가하세요.<br>
+<b style="color:#E0E0E0">④ 일괄 계산 실행</b> — 입력한 모든 거래에 대해 공시 필요 여부를 한 번에 확인할 수 있습니다.<br>
+<span style="color:#F59E0B">💡 개별 계산과 달리 여러 거래를 한 화면에서 비교할 때 유용합니다.</span>
+</div>
+</div>
+""", unsafe_allow_html=True)
+
     default_vals = st.session_state.get('extracted_metrics') or NIARTHLAB_2025
     def to_uk(key, fallback=0):
         val = default_vals.get(key)
@@ -681,13 +780,13 @@ def show_batch_calculation(db, engine):
 
     with left:
         st.markdown("#### 재무 기준 지표")
-        st.caption("니어스랩 2025 감사보고서 기준 — 연도 변경 시에만 수정")
+        st.caption("감사보고서 PDF 업로드 시 자동 반영 — 연도 변경 시에만 수정")
         sales_uk            = st.number_input("매출액 (억원)",  min_value=0,      value=to_uk('sales'),               step=1, format="%d", key="b_sales")
         total_assets_uk     = st.number_input("자산총액 (억원)", min_value=0,      value=to_uk('total_assets'),         step=1, format="%d", key="b_assets")
         equity_uk           = st.number_input("자기자본 (억원)", min_value=-99999, value=to_uk('equity'),               step=1, format="%d", key="b_equity")
         current_assets_uk   = st.number_input("유동자산 (억원)", min_value=0,      value=to_uk('current_assets'),       step=1, format="%d", key="b_ca")
         current_liabilities_uk = st.number_input("유동부채 (억원)", min_value=0,   value=to_uk('current_liabilities'),  step=1, format="%d", key="b_cl")
-        accumulated_loss_uk = st.number_input("누적결손금 (억원)", min_value=0,    value=to_uk('accumulated_loss'),     step=1, format="%d", key="b_loss")
+        accumulated_loss_uk = st.number_input("누적결손금 (억원)", min_value=-99999, value=to_uk('accumulated_loss'),     step=1, format="%d", key="b_loss")
 
     with right:
         st.markdown("#### 거래 목록 입력")
@@ -858,6 +957,20 @@ def show_articles_check():
     """, unsafe_allow_html=True)
     st.markdown('<div class="section-header">니어스랩 정관 → 공시 의무 매핑</div>', unsafe_allow_html=True)
     st.caption("니어스랩 정관(2025년 기준) 핵심 조항별 공시 트리거·서식·기한을 정리합니다.")
+
+    st.markdown("""
+<div style="background:#1A1A1A;border:1px solid #2A2A2A;border-left:3px solid #A855F7;
+border-radius:8px;padding:16px 20px;margin-bottom:20px">
+<div style="color:#FFFFFF;font-weight:700;margin-bottom:10px">📋 정관 공시 체크 사용 방법</div>
+<div style="color:#AAAAAA;font-size:0.88rem;line-height:2">
+<b style="color:#E0E0E0">① 정관 조항별 공시 의무</b> — 니어스랩 정관의 핵심 조항(사업목적·자본금·이사회 등)별로 공시 트리거, 서식, 기한을 확인합니다.
+위험도 필터(즉시공시 / 주총후공시)로 우선순위를 좁힐 수 있습니다.<br>
+<b style="color:#E0E0E0">② 정관 변경 시뮬레이터</b> — 변경 예정인 조항을 선택하면 필요한 공시 절차와 주의사항을 미리 확인할 수 있습니다.<br>
+<b style="color:#E0E0E0">③ 자본조달 한도 체크</b> — CB(전환사채)·BW(신주인수권부사채) 등 자본조달 수단별 정관 한도 대비 잔여 한도를 확인합니다.<br>
+<span style="color:#F59E0B">💡 정관 변경이 필요한 경우, 반드시 주주총회 특별결의 일정을 감안하여 공시 기한을 역산하세요.</span>
+</div>
+</div>
+""", unsafe_allow_html=True)
 
     tab1, tab2, tab3 = st.tabs(["정관 조항별 공시 의무", "정관 변경 시뮬레이터", "자본조달 한도 체크"])
 
@@ -1093,44 +1206,54 @@ def show_info():
 
 
 
-def _extract_metrics_with_ai(text: str) -> dict:
-    """Gemini AI로 PDF 텍스트에서 재무지표 추출"""
-    import os, json, re as _re
-    try:
-        import google.generativeai as genai
-        api_key = os.getenv("GOOGLE_API_KEY", "")
-        if not api_key or api_key == "your_google_api_key_here":
-            return {}
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
-
-        # 텍스트가 너무 길면 앞 8000자만 사용
-        snippet = text[:8000]
-        prompt = f"""아래는 한국 기업의 감사보고서 텍스트입니다.
-다음 재무지표를 **원(KRW) 단위 정수**로 추출하여 JSON으로만 답하세요.
+_GEMINI_PROMPT = """이 한국 기업 감사보고서에서 다음 재무지표를 원(KRW) 단위 정수로 추출하여 JSON으로만 답하세요.
 값을 찾지 못한 항목은 null로 표기하세요.
 
 추출 항목:
 - sales: 매출액 (또는 영업수익)
 - total_assets: 자산총액 (또는 자산합계)
-- equity: 자기자본 (또는 자본총계)
+- equity: 자기자본 (또는 자본총계, 자본잠식이면 음수)
 - current_assets: 유동자산
 - current_liabilities: 유동부채
 - accumulated_loss: 누적결손금 (결손이면 양수로)
 - capital: 자본금
 
-응답 형식 예시:
-{{"sales": 50000000000, "total_assets": 120000000000, "equity": 40000000000, "current_assets": 30000000000, "current_liabilities": 20000000000, "accumulated_loss": null, "capital": 5000000000}}
+응답 형식: {"sales": 6600000000, "total_assets": 23100000000, "equity": -87300000000, ...}"""
 
-텍스트:
-{snippet}"""
 
-        response = model.generate_content(prompt)
-        raw = response.text.strip()
-        # 코드블록 제거
-        raw = _re.sub(r"```(?:json)?", "", raw).strip("`").strip()
+def _extract_metrics_with_ai(text: str, pdf_bytes: bytes = None) -> dict:
+    """Gemini AI로 재무지표 추출. 스캔 PDF면 이미지 변환 후 Vision으로 처리."""
+    import os, json, re as _re
+    try:
+        import google.generativeai as genai
+        api_key = os.getenv("GOOGLE_API_KEY", "")
+        if not api_key or api_key == "your_google_api_key_here":
+            raise ValueError("GOOGLE_API_KEY 미설정")
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.0-flash")
+
+        # 스캔 PDF: 텍스트 500자 미만 → 페이지를 이미지로 변환해서 Vision 처리
+        if len(text.strip()) < 500 and pdf_bytes:
+            import fitz, base64
+            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+            parts = [_GEMINI_PROMPT]
+            for i in range(min(20, len(doc))):
+                page = doc[i]
+                pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5))
+                img_b64 = base64.b64encode(pix.tobytes("png")).decode()
+                parts.append({"inline_data": {"mime_type": "image/png", "data": img_b64}})
+            doc.close()
+            response = model.generate_content(parts)
+        else:
+            response = model.generate_content(
+                f"아래 감사보고서 텍스트에서:\n{_GEMINI_PROMPT}\n\n텍스트:\n{text[:8000]}"
+            )
+
+        raw = _re.sub(r"```(?:json)?", "", response.text.strip()).strip("`").strip()
         return json.loads(raw)
-    except Exception:
+    except Exception as e:
+        # 세션에 에러 저장 (show_pdf_parsing에서 표시)
+        st.session_state["_ai_extract_error"] = str(e)
         return {}
 
 
@@ -1198,6 +1321,23 @@ def show_pdf_parsing():
     """, unsafe_allow_html=True)
     st.markdown('<div class="section-header">감사보고서 / 분기보고서 PDF 파싱</div>', unsafe_allow_html=True)
 
+    # DART 다운로드 안내
+    st.markdown("""
+<div style="background:#1A1A1A;border:1px solid #2A2A2A;border-left:3px solid #2563EB;
+border-radius:8px;padding:16px 20px;margin-bottom:16px">
+<div style="color:#FFFFFF;font-weight:700;margin-bottom:8px">📥 PDF 파일 준비 방법</div>
+<div style="color:#AAAAAA;font-size:0.9rem;line-height:1.8">
+회계법인에서 받은 <b style="color:#EF4444">스캔본 PDF는 이미지</b>라 숫자 자동 추출이 안 됩니다.<br>
+<b style="color:#22C55E">DART(전자공시)에서 받은 PDF</b>는 텍스트 기반이라 바로 추출됩니다.<br><br>
+<b>DART에서 다운로드하는 방법:</b><br>
+① <a href="https://dart.fss.or.kr" target="_blank" style="color:#2563EB">dart.fss.or.kr</a> 접속
+→ ② 상단 검색창에 회사명 입력
+→ ③ 공시 목록에서 <b>감사보고서 / 분기보고서</b> 클릭
+→ ④ 우측 상단 <b>첨부파일 다운로드</b>
+</div>
+</div>
+""", unsafe_allow_html=True)
+
     # ── 저장된 보고서 불러오기 ────────────────────────────
     saved = _load_saved_reports()
     tab_saved, tab_upload = st.tabs([f"저장된 보고서 ({len(saved)}개)", "새 보고서 업로드"])
@@ -1254,26 +1394,66 @@ def show_pdf_parsing():
                 st.error(f"PDF 열기 실패: {e}")
                 return
 
-        # AI 재무지표 추출
-        with st.spinner("Gemini AI로 재무지표 분석 중..."):
-            ai_metrics = _extract_metrics_with_ai(full_text)
+        is_scanned = len(full_text.strip()) < 500
 
-        # AI 실패 시 정규식 fallback
-        if not ai_metrics:
-            parser = AuditReportParser()
-            temp_path = Path(__file__).parent / "data" / "temp_upload.pdf"
-            temp_path.parent.mkdir(parents=True, exist_ok=True)
-            temp_path.write_bytes(pdf_bytes)
-            try:
-                ai_metrics = parser.parse_pdf(str(temp_path))
-            finally:
-                if temp_path.exists():
-                    temp_path.unlink()
-            st.caption("※ AI 추출 실패 — 정규식 패턴으로 대체 추출했습니다.")
+        # ── 텍스트 PDF(DART): 정규식 먼저, Gemini 없이 처리 ──
+        ai_metrics = {}
+        extract_method = ""
+
+        if not is_scanned:
+            with st.spinner("재무지표 추출 중..."):
+                temp_path = Path(__file__).parent / "data" / "temp_upload.pdf"
+                temp_path.parent.mkdir(parents=True, exist_ok=True)
+                temp_path.write_bytes(pdf_bytes)
+                try:
+                    ai_metrics = AuditReportParser().parse_pdf(str(temp_path))
+                finally:
+                    if temp_path.exists():
+                        temp_path.unlink()
+            if ai_metrics and any(v for v in ai_metrics.values()):
+                extract_method = "regex"
+
+        # ── 정규식 실패 또는 스캔 PDF: Gemini Vision 시도 ──
+        if not ai_metrics or not any(v for v in ai_metrics.values()):
+            st.session_state.pop("_ai_extract_error", None)
+            label = "스캔 PDF — Gemini Vision 분석 중... (30초~1분 소요)" if is_scanned \
+                    else "정규식 추출 실패 — Gemini AI 재시도 중..."
+            with st.spinner(label):
+                ai_metrics = _extract_metrics_with_ai(full_text, pdf_bytes=pdf_bytes)
+            ai_err = st.session_state.pop("_ai_extract_error", None)
+            if ai_err:
+                st.warning(f"AI 추출 오류: `{ai_err}`")
+            elif ai_metrics:
+                extract_method = "gemini"
+
+        if extract_method == "regex":
+            st.caption("✅ 텍스트 PDF — 정규식 추출 완료 (Gemini 미사용)")
+        elif extract_method == "gemini":
+            st.caption("✅ Gemini AI 추출 완료")
+        else:
+            st.warning("재무지표를 자동 추출하지 못했습니다. '공시 판정 계산' 메뉴에서 직접 입력하거나 DART 원본 PDF를 사용하세요.")
 
         st.markdown("---")
         st.markdown("### 추출된 재무지표")
         _display_metrics(ai_metrics)
+
+        # 디버그: 원문 텍스트 확인 (패턴 개선용)
+        with st.expander("🔍 원문 텍스트 확인 (패턴 디버그)", expanded=False):
+            parser_dbg = AuditReportParser()
+            lines_dbg = full_text.split('\n')
+            multiplier_dbg = parser_dbg._detect_unit(full_text)
+            unit_label = {1: "원", 1_000: "천원", 1_000_000: "백만원"}.get(multiplier_dbg, f"×{multiplier_dbg}")
+            st.info(f"감지된 단위: **{unit_label}** (multiplier={multiplier_dbg:,})")
+
+            keywords = ['매출액', '자산총계', '자본총계', '유동자산', '유동부채', '결손금', '자본금', '단위']
+            matched_lines = []
+            for i, line in enumerate(lines_dbg):
+                if any(kw in line for kw in keywords):
+                    start = max(0, i - 1)
+                    end = min(len(lines_dbg), i + 5)
+                    block = '\n'.join(f"[{j}] {lines_dbg[j]}" for j in range(start, end))
+                    matched_lines.append(block + "\n---")
+            st.code('\n'.join(matched_lines[:40]) if matched_lines else "키워드 미발견")
 
         st.session_state['extracted_metrics'] = ai_metrics
 
@@ -1356,7 +1536,20 @@ def show_query_history():
     </div>
     """, unsafe_allow_html=True)
     st.markdown('<div class="section-header">조회 이력</div>', unsafe_allow_html=True)
-    
+
+    st.markdown("""
+<div style="background:#1A1A1A;border:1px solid #2A2A2A;border-left:3px solid #F59E0B;
+border-radius:8px;padding:16px 20px;margin-bottom:20px">
+<div style="color:#FFFFFF;font-weight:700;margin-bottom:10px">📋 조회 이력 사용 방법</div>
+<div style="color:#AAAAAA;font-size:0.88rem;line-height:2">
+<b style="color:#E0E0E0">조회 이력 저장</b> — 공시 판정 계산 결과 화면 하단의 <b>💾 조회 이력에 저장</b> 버튼을 누르면 이 페이지에 자동 기록됩니다.<br>
+<b style="color:#E0E0E0">이력 조회</b> — 과거에 판정한 거래 건을 날짜·금액·결과별로 다시 확인할 수 있습니다.<br>
+<b style="color:#E0E0E0">이력 삭제</b> — 불필요한 기록은 개별 삭제할 수 있습니다.<br>
+<span style="color:#F59E0B">💡 동일 거래를 반복 검토하거나, 연간 공시 이력을 관리할 때 활용하세요.</span>
+</div>
+</div>
+""", unsafe_allow_html=True)
+
     history = QueryHistory()
     
     # 통계 표시
@@ -1429,7 +1622,20 @@ def show_ai_advisor():
     </div>
     """, unsafe_allow_html=True)
     st.markdown('<div class="section-header">AI 공시 어드바이저</div>', unsafe_allow_html=True)
-    
+
+    st.markdown("""
+<div style="background:#1A1A1A;border:1px solid #2A2A2A;border-left:3px solid #10B981;
+border-radius:8px;padding:16px 20px;margin-bottom:20px">
+<div style="color:#FFFFFF;font-weight:700;margin-bottom:10px">📋 AI 공시 어드바이저 사용 방법</div>
+<div style="color:#AAAAAA;font-size:0.88rem;line-height:2">
+<b style="color:#E0E0E0">자유로운 질문</b> — 공시 규정, 절차, 기한 등 궁금한 사항을 채팅 형식으로 질문하세요.<br>
+<b style="color:#E0E0E0">질문 예시</b> — "대표이사 변경 시 공시 의무는?", "매출액 5% 이상 계약 체결 시 기한은?", "CB 발행 공시 절차 알려줘"<br>
+<b style="color:#E0E0E0">규정 근거 제시</b> — 관련 공시 규칙명과 기준을 함께 답변하므로 실무 검토 자료로 활용할 수 있습니다.<br>
+<span style="color:#EF4444">⚠ AI 답변은 참고용이며, 최종 공시 여부는 반드시 공시책임자·거래소 담당자와 확인하세요.</span>
+</div>
+</div>
+""", unsafe_allow_html=True)
+
     st.info("공시 규정이나 기업 공시 사례에 대해 궁금한 점을 물어보세요. (예: 대표이사 변경 시 공시 의무는?)")
     
     # 채팅 기록 초기화
