@@ -40,6 +40,7 @@ class DartApiClient:
         categories: List[str],
         months: int = 6,
         page_count: int = 20,
+        pblntf_override: Optional[str] = None,
     ) -> list:
         """회사명 + 카테고리로 DART 공시 목록 조회.
         corp_code 없이 corp_name만 사용 시 DART API 제한(3개월)이 있으므로
@@ -59,12 +60,17 @@ class DartApiClient:
             end_dt = start_dt
             remaining -= chunk
 
-        # 중복 없이 pblntf_ty 수집
-        seen_types: list = []
-        for cat in categories:
-            for t in _CATEGORY_PBLNTF.get(cat, ["B"]):
-                if t not in seen_types:
-                    seen_types.append(t)
+        # pblntf_override가 있으면 직접 사용, 없으면 카테고리에서 매핑
+        if pblntf_override:
+            seen_types: list = [pblntf_override]
+        else:
+            seen_types = []
+            for cat in categories:
+                for t in _CATEGORY_PBLNTF.get(cat, ["B"]):
+                    if t not in seen_types:
+                        seen_types.append(t)
+            if not seen_types:
+                seen_types = ["B"]
 
         all_items: list = []
         for chunk_start, chunk_end in chunks:

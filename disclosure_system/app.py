@@ -475,7 +475,7 @@ def show_rule_search():
 
     st.markdown('<div class="section-header">공시규칙 검색</div>', unsafe_allow_html=True)
 
-    tab1, tab2, tab3 = st.tabs(["키워드 검색", "카테고리별", "기준 지표별"])
+    tab1, tab2, tab3, tab4 = st.tabs(["키워드 검색", "카테고리별", "기준 지표별", "DART 실시간 검색"])
 
     with tab1:
         all_rules = db.get_all_rules()
@@ -504,6 +504,77 @@ def show_rule_search():
             format_func=lambda x: metric_options.get(x)
         )
         _display_rule_list(db.search_by_threshold_metric(selected_metric), law_client, key_prefix="t3_")
+
+    with tab4:
+        st.markdown("""
+<div style="background:#1A1A1A;border:1px solid #2A2A2A;border-left:3px solid #F59E0B;
+border-radius:8px;padding:14px 18px;margin-bottom:16px">
+<div style="color:#FFFFFF;font-weight:700;margin-bottom:8px">📡 DART 실시간 공시 검색이란?</div>
+<div style="color:#AAAAAA;font-size:0.87rem;line-height:1.9">
+좌측 탭의 규칙 DB는 <b style="color:#F59E0B">49개의 수동 정의 규칙</b>만 포함합니다.
+실제 시장에서 발생하는 공시는 수천 건 이상으로 훨씬 다양합니다.<br>
+이 탭에서는 <b style="color:#22C55E">DART(금융감독원 전자공시)에 실제 등록된 공시</b>를 직접 검색할 수 있습니다.<br>
+공시 유형·회사명·기간을 선택하면 실제 제출된 공시 목록과 원문 링크를 확인할 수 있습니다.
+</div>
+</div>
+""", unsafe_allow_html=True)
+
+        dc1, dc2, dc3 = st.columns([2, 2, 1])
+        with dc1:
+            dart_corp_rule = st.text_input(
+                "회사명 (선택)",
+                value="",
+                placeholder="입력 시 해당 회사만, 비워두면 전체",
+                key="dart_corp_rule"
+            )
+        with dc2:
+            pblntf_options = {
+                "B": "주요사항보고 (유상증자·CB·M&A 등)",
+                "A": "정기공시 (사업보고서·반기·분기)",
+                "C": "발행공시 (증권신고서 등)",
+                "F": "외부감사관련 (감사의견 등)",
+                "I": "거래소공시 (배당·임원변동 등)",
+                "J": "공정공시 (내부거래 등)",
+            }
+            dart_ptype = st.selectbox(
+                "공시 유형",
+                options=list(pblntf_options.keys()),
+                format_func=lambda x: pblntf_options[x],
+                key="dart_ptype_rule"
+            )
+        with dc3:
+            dart_months_rule = st.selectbox(
+                "기간",
+                [1, 3, 6, 12],
+                index=1,
+                format_func=lambda x: f"최근 {x}개월",
+                key="dart_months_rule"
+            )
+
+        if st.button("DART 검색", key="dart_rule_search", type="primary"):
+            with st.spinner("DART 공시 조회 중..."):
+                try:
+                    dart_items = DartApiClient().search_disclosures(
+                        dart_corp_rule.strip(),
+                        [],          # categories 빈 리스트 → pblntf_ty 직접 지정
+                        months=dart_months_rule,
+                        pblntf_override=dart_ptype,
+                    )
+                    if dart_items:
+                        st.success(f"**{len(dart_items)}건** 조회됨")
+                        for item in dart_items:
+                            rcept_no = item.get("rcept_no", "")
+                            date = item.get("rcept_dt", "")
+                            title = item.get("report_nm", "")
+                            corp = item.get("corp_name", "")
+                            url = DartApiClient.disclosure_url(rcept_no)
+                            st.markdown(f"- `{date}` **{corp}** — [{title}]({url})")
+                    else:
+                        st.info("조회된 공시가 없습니다. 기간을 늘리거나 회사명을 확인하세요.")
+                except ValueError as e:
+                    st.error(str(e))
+                except Exception as e:
+                    st.error(f"DART API 오류: {e}")
 
 
 def show_calculation():
