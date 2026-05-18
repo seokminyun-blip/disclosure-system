@@ -440,7 +440,8 @@ def show_rule_search():
     law_client = load_law_client()
 
     # 히어로 배너 (공시규칙 검색 페이지에서만 표시)
-    st.markdown("""
+    rule_count = len(db.get_all_rules())
+    st.markdown(f"""
     <div class="hero-section">
         <div class="hero-title">공시 의무를 자동으로<br>판정하기 위해 출발했습니다.</div>
         <div class="hero-subtitle">
@@ -450,7 +451,7 @@ def show_rule_search():
         <div class="hero-stats">
             <div class="hero-stat-card">
                 <div class="hero-stat-label">공시 규칙 DB</div>
-                <div class="hero-stat-value">49+</div>
+                <div class="hero-stat-value">{rule_count}+</div>
             </div>
             <div class="hero-stat-card">
                 <div class="hero-stat-label">지원 시장</div>
@@ -508,12 +509,12 @@ def show_rule_search():
         _display_rule_list(db.search_by_threshold_metric(selected_metric), law_client, key_prefix="t3_")
 
     with tab4:
-        st.markdown("""
+        st.markdown(f"""
 <div style="background:#1A1A1A;border:1px solid #2A2A2A;border-left:3px solid #F59E0B;
 border-radius:8px;padding:14px 18px;margin-bottom:16px">
 <div style="color:#FFFFFF;font-weight:700;margin-bottom:8px">📡 DART 실시간 공시 검색이란?</div>
 <div style="color:#AAAAAA;font-size:0.87rem;line-height:1.9">
-좌측 탭의 규칙 DB는 <b style="color:#F59E0B">49개의 수동 정의 규칙</b>만 포함합니다.
+좌측 탭의 규칙 DB는 <b style="color:#F59E0B">수동 정의 규칙({rule_count}개)</b>만 포함합니다.
 실제 시장에서 발생하는 공시는 수천 건 이상으로 훨씬 다양합니다.<br>
 이 탭에서는 <b style="color:#22C55E">DART(금융감독원 전자공시)에 실제 등록된 공시</b>를 직접 검색할 수 있습니다.<br>
 공시 유형·회사명·기간을 선택하면 실제 제출된 공시 목록과 원문 링크를 확인할 수 있습니다.
